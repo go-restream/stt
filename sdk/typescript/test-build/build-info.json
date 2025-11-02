@@ -1,0 +1,14 @@
+{
+  "buildTime": "2025-10-26T04:28:55.275Z",
+  "version": "1.0.0",
+  "files": {
+    "index.js": "UMD bundle for browsers",
+    "index.esm.js": "ES Module bundle",
+    "react.js": "React hooks bundle"
+  },
+  "tests": [
+    "basic-usage.html - Vanilla JS test",
+    "react-test.html - React hooks test",
+    "test-node.js - Node.js CommonJS test"
+  ]
+}

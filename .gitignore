@@ -1,0 +1,63 @@
+# Build artifacts
+build/
+dist/
+streamASR
+streamASR.exe
+*.exe
+
+# Binary files and databases
+streamASR_CoreQL_DB
+
+# Node.js dependencies
+node_modules/
+
+# Temporary files and notes
+*.tmp
+*.temp
+note.txt
+.DS_Store
+Thumbs.db
+
+# Backup directories
+**/bak/**
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+logs/
+*.log
+
+# Audio files (recordings)
+audio/
+*.wav
+*.mp3
+*.flac
+*.ogg
+
+# Configuration overrides
+.env
+.env.local
+.env.development
+.env.test
+
+# Coverage reports
+coverage.out
+coverage.html
+
+# Test files
+test_data/
+tests/
+
+# claude and open spec
+.claude
+openspec
+AGENTS.md
+CLAUDE.md
+
+
+

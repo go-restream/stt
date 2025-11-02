@@ -1,0 +1,470 @@
+:root {
+    /* 默认主题 - 深蓝科技风 */
+    --primary: #00d4ff;
+    --secondary: #090979;
+    --dark: #121212;
+    --darker: #0a0a0a;
+    --light: #e0e0e0;
+    --success: #00ff88;
+    --error: #ff3860;
+    --card-bg: rgba(255, 255, 255, 0.05);
+}
+
+[data-theme="cyber"] {
+    /* 紫色赛博风 */
+    --primary: #ff00ff;
+    --secondary: #8a2be2;
+    --dark: #0f0f1a;
+    --darker: #070710;
+    --light: #f0f0f0;
+    --success: #00ff88;
+    --error: #ff3860;
+    --card-bg: rgba(255, 255, 255, 0.05);
+}
+
+[data-theme="matrix"] {
+    /* 绿色矩阵风 */
+    --primary: #00ff41;
+    --secondary: #008f11;
+    --dark: #020202;
+    --darker: #000000;
+    --light: #e0e0e0;
+    --success: #00ff88;
+    --error: #ff3860;
+    --card-bg: rgba(0, 255, 65, 0.05);
+}
+
+body {
+    font-family: 'Roboto', sans-serif;
+    color: var(--light);
+    min-height: 100vh;
+    margin: 0;
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transition: background 0.5s ease;
+}
+
+/* 默认主题背景 */
+[data-theme="default"] body {
+    background: linear-gradient(135deg, var(--darker), var(--dark));
+}
+
+/* 赛博主题背景 */
+[data-theme="cyber"] body {
+    background: linear-gradient(135deg, #1a0f33, #3a1f6f);
+}
+
+/* 矩阵主题背景 */
+[data-theme="matrix"] body {
+    background: linear-gradient(135deg, #001a00, #003300);
+}
+
+.container {
+    max-width: 1200px;
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 2rem;
+    align-items: start;
+    margin-top: 5%;
+}
+
+.visualizer-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-right: 10%;
+}
+
+#audioVisualizer {
+    width: 100%;
+    height: 200px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    border: 1px solid rgba(0, 212, 255, 0.3);
+}
+
+.audio-level {
+    height: 6px;
+    background: rgba(0, 212, 255, 0.1);
+    border-radius: 3px;
+    overflow: hidden;
+    position: relative;
+}
+
+.image-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.image-container img {
+    max-width: 100%;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.content-container {
+    display: flex;
+    flex-direction: column;
+}
+
+h1 {
+    font-family: 'Orbitron', sans-serif;
+    text-align: center;
+    margin-bottom: 2rem;
+    font-size: 2.5rem;
+    background: linear-gradient(90deg, var(--primary), var(--secondary));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    text-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
+}
+
+.card {
+    background: var(--card-bg);
+    backdrop-filter: blur(10px);
+    border-radius: 12px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 40px rgba(0, 212, 255, 0.2);
+}
+
+/* 配置区域样式 */
+.config-section {
+    display: flex;
+    gap: 2rem;
+    justify-content: center;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.config-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.config-group label {
+    color: var(--light);
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.config-group select,
+.config-group input[type="checkbox"] {
+    background: var(--card-bg);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    color: var(--light);
+    padding: 6px 8px;
+    font-size: 0.9rem;
+}
+
+.config-group select:focus,
+.config-group input[type="checkbox"]:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+.btn-group {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin-bottom: 1.5rem;
+}
+
+button {
+    padding: 12px 24px;
+    font-size: 1rem;
+    font-weight: 500;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    z-index: 1;
+}
+
+/* 移除按钮组的全局hover效果 */
+
+#startBtn {
+    background: var(--primary);
+    color: var(--darker);
+}
+
+#stopBtn {
+    background: var(--secondary);
+    color: white;
+}
+
+button:disabled {
+    background: #444 !important;
+    color: #777 !important;
+    cursor: not-allowed;
+}
+
+button:disabled::before {
+    display: none;
+}
+
+#status {
+    padding: 1rem;
+    border-radius: 8px;
+    margin: 1rem 0;
+    text-align: center;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.status {
+    background: rgba(0, 212, 255, 0.1);
+    color: var(--primary);
+    border: 1px solid var(--primary);
+}
+
+.error {
+    background: rgba(255, 56, 96, 0.1);
+    color: var(--error);
+    border: 1px solid var(--error);
+    animation: pulse 0.5s ease-in-out;
+}
+
+.transcript-container {
+    position: relative;
+}
+
+#transcript {
+    background: var(--card-bg);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 1.5rem;
+    min-height: 200px;
+    max-height: 400px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    font-family: 'Roboto Mono', monospace;
+    line-height: 1.6;
+}
+
+#transcript::-webkit-scrollbar {
+    width: 8px;
+}
+
+#transcript::-webkit-scrollbar-thumb {
+    background: var(--primary);
+    border-radius: 4px;
+}
+
+.pulse {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(0, 212, 255, 0.7); }
+    70% { box-shadow: 0 0 0 10px rgba(0, 212, 255, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(0, 212, 255, 0); }
+}
+
+.copy-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--card-bg);
+    border: 1px solid var(--primary);
+    color: var(--primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    z-index: 10;
+}
+
+.copy-btn:hover {
+    background: var(--primary);
+    color: var(--darker);
+}
+
+.copy-btn svg {
+    width: 18px;
+    height: 18px;
+}
+
+@media (max-width: 768px) {
+    .container {
+        grid-template-columns: 1fr;
+    }
+    
+    body {
+        padding: 1rem;
+    }
+    
+    h1 {
+        font-size: 1.8rem;
+    }
+    
+    .card {
+        padding: 1.5rem;
+    }
+    
+    .btn-group {
+        flex-direction: column;
+    }
+}
+
+/* 主题切换器样式 */
+.theme-switcher {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: var(--card-bg);
+    border-radius: 50%;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+    transition: all 0.3s ease;
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    overflow: hidden;
+}
+
+.theme-switcher.expanded {
+    border-radius: 8px;
+    width: auto;
+    height: auto;
+    padding: 1rem;
+}
+
+.theme-switcher .toggle-icon {
+    font-size: 24px;
+    color: var(--primary);
+    transition: all 0.3s ease;
+}
+
+.theme-switcher.expanded .toggle-icon {
+    display: none;
+}
+
+.theme-switcher .theme-buttons {
+    display: none;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.theme-switcher.expanded .theme-buttons {
+    display: flex;
+}
+
+.theme-switcher button {
+    padding: 8px 16px;
+    background: var(--card-bg);
+    color: var(--light);
+    border: 1px solid var(--primary);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.theme-switcher button:hover {
+    background: var(--primary);
+    color: var(--darker);
+}
+
+/* 按钮容器样式 */
+.transcript-container .btn-group {
+    position: absolute;
+    bottom: 15px;
+    right: 15px;
+    display: flex;
+    gap: 10px;
+}
+
+/* 保存和AI总结按钮样式 */
+.save-btn {
+    position: absolute;
+    bottom: 15px;
+    right: 15px;
+    padding: 8px 12px 8px 8px;
+    border-radius: 20px;
+    background: var(--card-bg);
+    border: 1px solid var(--primary);
+    color: var(--primary);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    z-index: 10;
+    font-size: 14px;
+}
+
+.save-btn:hover {
+    background: var(--primary);
+    color: var(--darker);
+}
+
+.save-btn svg {
+    width: 14px;
+    height: 14px;
+}
+
+/* 保存按钮动画 */
+.saved {
+    animation: pulse 0.5s ease-in-out;
+    background: var(--success) !important;
+    color: var(--darker) !important;
+    border-color: var(--success) !important;
+}
+
+/* AI总结内容框样式 */
+.ai-summary {
+    background: var(--card-bg);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 1.5rem;
+    min-height: 200px;
+    max-height: 400px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    font-family: 'Roboto Mono', monospace;
+    line-height: 1.6;
+    margin-top: 1rem;
+}
+
+.ai-summary::-webkit-scrollbar {
+    width: 8px;
+}
+
+.ai-summary::-webkit-scrollbar-thumb {
+    background: var(--primary);
+    border-radius: 4px;
+}
+
+/* 按钮组样式 */
+/* 移除单个按钮的绝对定位 */
+.save-btn {
+    position: static;
+    margin: 0;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: scale(0.8); }
+    to { opacity: 1; transform: scale(1); }
+}

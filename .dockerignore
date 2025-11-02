@@ -1,0 +1,50 @@
+# Git
+.git
+.gitignore
+
+# Documentation
+docs/
+README.md
+CLAUDE.md
+AGENTS.md
+
+# Build artifacts
+build/
+dist/
+streamASR
+streamASR.exe
+
+# Dependencies (will be downloaded in container)
+vendor/
+
+# IDE files
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+
+# Audio files (will be mounted as volume)
+audio/
+*.wav
+*.mp3
+
+# Temporary files
+tmp/
+temp/
+
+# OpenSpec directories
+openspec/
+
+# Test files
+*_test.go
+coverage.out
+
+# Development tools (but keep VERSION file for version info)
+# Makefile
+docker-compose.override.yml

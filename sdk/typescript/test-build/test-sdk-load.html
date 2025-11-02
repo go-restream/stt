@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SDK Load Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        pre {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>StreamASR SDK Load Test</h1>
+
+    <div id="results"></div>
+
+    <script src="/dist/index.js"></script>
+    <script>
+        const results = document.getElementById('results');
+
+        function addResult(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `result ${type}`;
+            div.textContent = message;
+            results.appendChild(div);
+        }
+
+        function addCodeBlock(title, content) {
+            const titleDiv = document.createElement('h3');
+            titleDiv.textContent = title;
+            results.appendChild(titleDiv);
+
+            const pre = document.createElement('pre');
+            pre.textContent = content;
+            results.appendChild(pre);
+        }
+
+        // 开始测试
+        addResult('Starting SDK load test...', 'info');
+
+        // 等待脚本加载
+        setTimeout(() => {
+            addResult('Checking global objects...', 'info');
+
+            // 检查window对象
+            addCodeBlock('Window object:', JSON.stringify(Object.keys(window).filter(key => key.includes('Stream')), null, 2));
+
+            // 检查StreamASR
+            if (typeof StreamASR !== 'undefined') {
+                addResult('✅ StreamASR object found!', 'success');
+                addCodeBlock('StreamASR object keys:', Object.keys(StreamASR));
+
+                if (StreamASR.StreamASRClient) {
+                    addResult('✅ StreamASRClient class found!', 'success');
+
+                    // 测试创建实例
+                    try {
+                        const client = new StreamASR.StreamASRClient({
+                            url: 'ws://localhost:8080/v1/realtime',
+                            apiKey: 'test-key',
+                            enableLogging: true
+                        });
+                        addResult('✅ Client instance created successfully!', 'success');
+                        addCodeBlock('Client instance methods:', Object.getOwnPropertyNames(Object.getPrototypeOf(client)));
+
+                        // 测试静态方法
+                        if (typeof StreamASR.StreamASRClient.isSupported === 'function') {
+                            const supported = StreamASR.StreamASRClient.isSupported();
+                            addResult(`✅ Browser support: ${supported ? 'YES' : 'NO'}`, supported ? 'success' : 'error');
+                        } else {
+                            addResult('❌ isSupported method not found', 'error');
+                        }
+
+                    } catch (error) {
+                        addResult(`❌ Failed to create client: ${error.message}`, 'error');
+                        addCodeBlock('Error details:', error.stack);
+                    }
+                } else {
+                    addResult('❌ StreamASRClient class not found', 'error');
+                }
+            } else {
+                addResult('❌ StreamASR object not found!', 'error');
+                addCodeBlock('Available global objects:', Object.keys(window).filter(key => !key.includes('_')).sort());
+            }
+
+            addResult('Test completed!', 'info');
+
+        }, 1000);
+    </script>
+</body>
+</html>

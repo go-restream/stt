@@ -1,0 +1,40 @@
+service_port: "8088"
+
+asr:
+  base_url: "http://localhost:3000/v1"
+  api_key: "sk-xxxxx-xxxxx-xxxxxx"
+  model: "FireRed-large"
+
+llm:
+  base_url: "https://api.deepseek.com/v1"
+  api_key: "sk-xxxx-xxxx-xxxxxxxxxxxxx"
+  model: "deepseek-chat"
+
+audio:
+  enable: true
+  save_dir: "./audio"
+  keep_files: 10
+  sample_rate: 16000
+  channels: 1
+  bit_depth: 16
+  buffer_size: 10
+
+vad:
+  enable: true
+  model: "./model/silero_vad.onnx"
+  threshold: 0.5
+  min_silence_duration: 1
+  min_speech_duration: 0.1
+  window_size: 512
+  max_speech_duration: 8.0
+  sample_rate: 16000
+  num_threads: 1
+  provider: "cpu"
+  debug: 0
+  bypass_for_testing: false
+  force_asr_after_seconds: 0
+
+logging:
+  level: "info"
+  file: ""
+  format: "json"
