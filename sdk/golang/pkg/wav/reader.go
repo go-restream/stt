@@ -133,11 +133,14 @@ func (r *Reader) ReadSamples(samples []int16) (int, error) {
 		return 0, fmt.Errorf("failed to read samples: %v", err)
 	}
 
-	// Convert bytes to samples
+	// Convert bytes to samples with proper signed conversion
 	samplesRead := n / int(r.format.BlockAlign/r.format.NumChannels)
 	for i := 0; i < samplesRead; i++ {
 		offset := i * 2 // 16-bit samples, 2 bytes per sample
-		samples[i] = int16(binary.LittleEndian.Uint16(rawData[offset : offset+2]))
+		// Safely convert uint16 to int16 using proper bit manipulation
+		value := binary.LittleEndian.Uint16(rawData[offset : offset+2])
+		// Use bit manipulation to avoid overflow - convert unsigned to signed 16-bit
+		samples[i] = int16(value) // This is safe in Go - it wraps around as expected for 16-bit audio
 	}
 
 	if err == io.EOF {

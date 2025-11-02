@@ -28,11 +28,11 @@ func InitLogger(logLevel string, logFile string) error {
 
 	if logFile != "" {
 		logDir := filepath.Dir(logFile)
-		if err := os.MkdirAll(logDir, 0755); err != nil {
+		if err := os.MkdirAll(logDir, 0750); err != nil {
 			return err
 		}
 
-		file, err := os.OpenFile(logFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+		file, err := os.OpenFile(logFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0600)
 		if err != nil {
 			return err
 		}

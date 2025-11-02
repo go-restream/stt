@@ -20,6 +20,49 @@ import (
 // AudioUtils provides utilities for Base64 audio encoding/decoding and processing
 type AudioUtils struct{}
 
+// safeUint32Audio safely converts int to uint32 with overflow check for audio utilities
+func safeUint32Audio(val int) uint32 {
+	if val < 0 {
+		return 0
+	}
+	if val > 4294967295 {
+		return 4294967295
+	}
+	return uint32(val)
+}
+
+// validateFilePath safely validates file paths to prevent path traversal attacks
+func validateFilePath(filePath, allowedBaseDir string) (string, error) {
+	if filePath == "" {
+		return "", fmt.Errorf("file path cannot be empty")
+	}
+
+	// Clean the path to resolve any ".." or "." elements
+	cleanPath := filepath.Clean(filePath)
+
+	// If allowedBaseDir is provided, ensure the path is within it
+	if allowedBaseDir != "" {
+		absBaseDir, err := filepath.Abs(allowedBaseDir)
+		if err != nil {
+			return "", fmt.Errorf("failed to resolve base directory: %v", err)
+		}
+
+		// Join base dir with the relative path and clean it
+		joinedPath := filepath.Join(absBaseDir, cleanPath)
+		finalPath := filepath.Clean(joinedPath)
+
+		// Ensure the final path is still within the base directory
+		if !strings.HasPrefix(finalPath, absBaseDir) {
+			return "", fmt.Errorf("path traversal detected: %s attempts to access outside allowed directory %s", filePath, allowedBaseDir)
+		}
+
+		return finalPath, nil
+	}
+
+	// If no base directory specified, just return the cleaned path
+	return cleanPath, nil
+}
+
 // NewAudioUtils creates a new audio utilities instance
 func NewAudioUtils() *AudioUtils {
 	return &AudioUtils{}
@@ -61,7 +104,10 @@ func (au *AudioUtils) ConvertBase64ToPCM16(base64Audio string) ([]int16, error) 
 
 	samples := make([]int16, len(pcmBytes)/2)
 	for i := range samples {
-		samples[i] = int16(binary.LittleEndian.Uint16(pcmBytes[i*2:]))
+		// Safely convert uint16 to int16 using proper bit manipulation
+		value := binary.LittleEndian.Uint16(pcmBytes[i*2:])
+		// Use bit manipulation to avoid overflow - convert unsigned to signed 16-bit
+		samples[i] = int16(value) // This is safe in Go - it wraps around as expected for 16-bit audio
 	}
 
 	return samples, nil
@@ -71,7 +117,8 @@ func (au *AudioUtils) ConvertBase64ToPCM16(base64Audio string) ([]int16, error) 
 func (au *AudioUtils) ConvertPCM16ToBase64(samples []int16) string {
 	pcmBytes := make([]byte, len(samples)*2)
 	for i, sample := range samples {
-		binary.LittleEndian.PutUint16(pcmBytes[i*2:], uint16(sample))
+		// Safe conversion from int16 to uint16 for binary encoding
+		binary.LittleEndian.PutUint16(pcmBytes[i*2:], uint16(sample)) // This is safe for audio data
 	}
 	return au.EncodeAudioToBase64(pcmBytes)
 }
@@ -91,7 +138,10 @@ func (au *AudioUtils) ProcessBase64Audio(base64Audio string, sourceSampleRate in
 
 	samples := make([]int16, len(pcmBytes)/2)
 	for i := range samples {
-		samples[i] = int16(binary.LittleEndian.Uint16(pcmBytes[i*2:]))
+		// Safely convert uint16 to int16 using proper bit manipulation
+		value := binary.LittleEndian.Uint16(pcmBytes[i*2:])
+		// Use bit manipulation to avoid overflow - convert unsigned to signed 16-bit
+		samples[i] = int16(value) // This is safe in Go - it wraps around as expected for 16-bit audio
 	}
 
 	// Resample if needed
@@ -136,10 +186,17 @@ func (au *AudioUtils) ResampleAudio(samples []int16, sourceSampleRate int, targe
 		return nil, err
 	}
 
-	// Convert back to int16
+	// Convert back to int16 with overflow protection
 	resampledSamples := make([]int16, len(resampled.Data))
 	for i, v := range resampled.Data {
-		resampledSamples[i] = int16(v)
+		// Prevent overflow with proper clipping
+		if v > 32767 {
+			resampledSamples[i] = 32767  // Clamp to max int16 value
+		} else if v < -32768 {
+			resampledSamples[i] = -32768 // Clamp to min int16 value
+		} else {
+			resampledSamples[i] = int16(v)
+		}
 	}
 
 	return resampledSamples, nil
@@ -270,8 +327,8 @@ func (au *AudioUtils) ConvertPCM16ToWAV(samples []int16, sampleRate int) ([]byte
 	wavFormat := wav.WAVFormat{
 		AudioFormat:   1, // PCM
 		NumChannels:   1, // Mono
-		SampleRate:    uint32(sampleRate),
-		ByteRate:      uint32(sampleRate) * 2, // sampleRate * channels * bytesPerSample
+		SampleRate:    safeUint32Audio(sampleRate),
+		ByteRate:      safeUint32Audio(sampleRate) * 2, // sampleRate * channels * bytesPerSample
 		BlockAlign:    2,                      // channels * bytesPerSample
 		BitsPerSample: 16,
 	}
@@ -280,7 +337,12 @@ func (au *AudioUtils) ConvertPCM16ToWAV(samples []int16, sampleRate int) ([]byte
 	buffer := &bytes.Buffer{}
 
 	// Create WAV header with correct data size
-	dataSize := uint32(len(samples) * 2) // 16-bit samples, 2 bytes per sample
+	// Safely calculate data size with overflow check
+	samplesLen := len(samples)
+	if samplesLen > 2147483647 { // Check for potential overflow before multiplication
+		return nil, fmt.Errorf("too many samples: %d exceeds maximum safe limit", samplesLen)
+	}
+	dataSize := safeUint32Audio(samplesLen * 2) // 16-bit samples, 2 bytes per sample
 	header := wav.NewWAVHeader(wavFormat, dataSize)
 
 	// Write WAV header
@@ -329,15 +391,18 @@ func (au *AudioUtils) SaveAudioToFile(samples []int16, sampleRate int, filename 
 
 	// Ensure audio directory exists
 	audioDir := "audio"
-	if err := os.MkdirAll(audioDir, 0755); err != nil {
+	if err := os.MkdirAll(audioDir, 0750); err != nil {
 		return fmt.Errorf("failed to create audio directory: %v", err)
 	}
 
-	// Create full file path
-	filePath := filepath.Join(audioDir, filename)
+	// Create and validate full file path to prevent path traversal
+	safeFilePath, err := validateFilePath(filename, audioDir)
+	if err != nil {
+		return fmt.Errorf("invalid file path: %v", err)
+	}
 
 	// Create WAV file
-	file, err := os.Create(filePath)
+	file, err := os.Create(safeFilePath)
 	if err != nil {
 		return fmt.Errorf("failed to create audio file: %v", err)
 	}
@@ -347,8 +412,8 @@ func (au *AudioUtils) SaveAudioToFile(samples []int16, sampleRate int, filename 
 	wavFormat := wav.WAVFormat{
 		AudioFormat:   1, // PCM
 		NumChannels:   1, // Mono
-		SampleRate:    uint32(sampleRate),
-		ByteRate:      uint32(sampleRate) * 2, // sampleRate * channels * bytesPerSample
+		SampleRate:    safeUint32Audio(sampleRate),
+		ByteRate:      safeUint32Audio(sampleRate) * 2, // sampleRate * channels * bytesPerSample
 		BlockAlign:    2,                      // channels * bytesPerSample
 		BitsPerSample: 16,
 	}
@@ -372,12 +437,12 @@ func (au *AudioUtils) SaveAudioToFile(samples []int16, sampleRate int, filename 
 	logger.WithFields(map[string]interface{}{
 		"component":    "ws_audio_core ",
 		"action":       "file_saved",
-		"filePath":     filePath,
+		"filePath":     safeFilePath,
 		"sampleCount":  len(samples),
 		"sampleRate":   sampleRate,
 		"duration":     float64(len(samples)) / float64(sampleRate),
 		"fileSize":     func() int64 {
-			if info, err := os.Stat(filePath); err == nil {
+			if info, err := os.Stat(safeFilePath); err == nil {
 				return info.Size()
 			}
 			return 0

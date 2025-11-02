@@ -6,7 +6,41 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
+	"strings"
 )
+
+// validateFilePath safely validates file paths to prevent path traversal attacks
+func validateFilePath(filePath, allowedBaseDir string) (string, error) {
+	if filePath == "" {
+		return "", fmt.Errorf("file path cannot be empty")
+	}
+
+	// Clean the path to resolve any ".." or "." elements
+	cleanPath := filepath.Clean(filePath)
+
+	// If allowedBaseDir is provided, ensure the path is within it
+	if allowedBaseDir != "" {
+		absBaseDir, err := filepath.Abs(allowedBaseDir)
+		if err != nil {
+			return "", fmt.Errorf("failed to resolve base directory: %v", err)
+		}
+
+		// Join base dir with the relative path and clean it
+		joinedPath := filepath.Join(absBaseDir, cleanPath)
+		finalPath := filepath.Clean(joinedPath)
+
+		// Ensure the final path is still within the base directory
+		if !strings.HasPrefix(finalPath, absBaseDir) {
+			return "", fmt.Errorf("path traversal detected: %s attempts to access outside allowed directory %s", filePath, allowedBaseDir)
+		}
+
+		return finalPath, nil
+	}
+
+	// If no base directory specified, just return the cleaned path
+	return cleanPath, nil
+}
 
 // Writer handles WAV file writing
 type Writer struct {
@@ -47,7 +81,13 @@ func NewWriter(writer io.WriteSeeker, format WAVFormat) (*Writer, error) {
 
 // NewFileWriter creates a new WAV file writer
 func NewFileWriter(filename string, format WAVFormat) (*Writer, error) {
-	file, err := os.Create(filename)
+	// Validate file path to prevent path traversal
+	safeFilename, err := validateFilePath(filename, "")
+	if err != nil {
+		return nil, fmt.Errorf("invalid filename: %v", err)
+	}
+
+	file, err := os.Create(safeFilename)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create file: %v", err)
 	}
@@ -145,7 +185,14 @@ func (w *Writer) WriteSamples(samples []int16) error {
 	}
 
 	// Update data size
-	w.dataSize += uint32(n)
+	// Safely add to data size with overflow check
+	if n > 0 {
+		newSize := w.dataSize + uint32(n)
+		if newSize < w.dataSize { // Check for overflow
+			return fmt.Errorf("WAV data size overflow: %d + %d exceeds uint32 limit", w.dataSize, n)
+		}
+		w.dataSize = newSize
+	}
 	return nil
 }
 

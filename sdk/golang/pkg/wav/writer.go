@@ -83,7 +83,14 @@ func (w *Writer) WriteSamples(samples []int16) error {
 	}
 
 	// Update data size
-	w.dataSize += uint32(n)
+	// Safely add to data size with overflow check
+	if n > 0 {
+		newSize := w.dataSize + uint32(n)
+		if newSize < w.dataSize { // Check for overflow
+			return fmt.Errorf("WAV data size overflow: %d + %d exceeds uint32 limit", w.dataSize, n)
+		}
+		w.dataSize = newSize
+	}
 	return nil
 }
 

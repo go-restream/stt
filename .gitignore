@@ -59,5 +59,10 @@ openspec
 AGENTS.md
 CLAUDE.md
 
+# Local CI/CD testing files
+.secrets
+.vars
+.actrc
+
 
 

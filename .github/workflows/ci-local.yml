@@ -1,0 +1,168 @@
+name: Local CI Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  GO_VERSION: '1.23.2'
+  SKIP_DOCKER_PUSH: ${{ vars.SKIP_DOCKER_PUSH || 'true' }}
+  SKIP_RELEASE: ${{ vars.SKIP_RELEASE || 'true' }}
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: ${{ env.GO_VERSION }}
+
+    - name: Cache Go modules
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cache/go-build
+          ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+
+    - name: Download dependencies
+      run: go mod download
+
+    - name: Run tests
+      run: go test -v -race -coverprofile=coverage.out ./...
+
+    - name: Upload coverage to Codecov
+      if: github.event_name != 'push' || github.repository == github.event.repository
+      uses: codecov/codecov-action@v4
+      with:
+        file: ./coverage.out
+        flags: unittests
+        name: codecov-umbrella
+        token: ${{ secrets.CODECOV_TOKEN }}
+      continue-on-error: true
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: test
+
+    strategy:
+      matrix:
+        goos: [linux, darwin]
+        goarch: [amd64]
+        include:
+          - goos: linux
+            goarch: arm64
+          - goos: windows
+            goarch: amd64
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: ${{ env.GO_VERSION }}
+
+    - name: Cache Go modules
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cache/go-build
+          ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+
+    - name: Download dependencies
+      run: go mod download
+
+    - name: Build binary
+      env:
+        GOOS: ${{ matrix.goos }}
+        GOARCH: ${{ matrix.goarch }}
+        VERSION: ${{ github.ref_name }}
+        BUILD_TIME: ${{ github.event.head_commit.timestamp }}
+        GIT_COMMIT: ${{ github.sha }}
+      run: |
+        mkdir -p dist
+        binary_name="streamASR"
+        if [ "$GOOS" = "windows" ]; then
+          binary_name="$binary_name.exe"
+        fi
+
+        CGO_ENABLED=0 GOOS=$GOOS GOARCH=$GOARCH go build \
+          -ldflags "-X github.com/go-restream/stt/internal/version.Version=${VERSION:-dev} -X github.com/go-restream/stt/internal/version.BuildTime=${BUILD_TIME} -X github.com/go-restream/stt/internal/version.GitCommit=${GIT_COMMIT}" \
+          -o "dist/$binary_name" .
+
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: streamASR-${{ matrix.goos }}-${{ matrix.goarch }}
+        path: dist/
+
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: ${{ env.GO_VERSION }}
+
+    - name: Install Gosec
+      run: |
+        curl -sfL https://raw.githubusercontent.com/securecodewarrior/github-action-gosec/master/install.sh | sh -s -- -b "$HOME/bin" v2.21.4
+
+    - name: Run Gosec Security Scanner
+      run: |
+        "$HOME/bin/gosec" -no-fail -fmt sarif -out results.sarif ./...
+
+    - name: Upload SARIF file
+      if: github.event_name == 'pull_request' || github.event_name == 'push'
+      uses: github/codeql-action/upload-sarif@v3
+      with:
+        sarif_file: results.sarif
+      continue-on-error: true
+
+  docker:
+    name: Docker
+    runs-on: ubuntu-latest
+    needs: test
+    if: env.SKIP_DOCKER_PUSH == 'false'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Build Docker image (local only)
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        push: false
+        tags: streamasr:local
+        build-args: |
+          VERSION=${{ github.ref_name }}
+          BUILD_TIME=${{ github.event.head_commit.timestamp }}
+          GIT_COMMIT=${{ github.sha }}
+        platforms: linux/amd64
+        load: true

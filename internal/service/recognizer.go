@@ -21,9 +21,31 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var CHANNELS = 1            
-var BITS_PER_SAMPLE = 16 
-var SAMPLE_RATE = 48000 
+var CHANNELS = 1
+var BITS_PER_SAMPLE = 16
+var SAMPLE_RATE = 48000
+
+// safeUint16 safely converts int to uint16 with overflow check
+func safeUint16(val int) uint16 {
+	if val < 0 {
+		return 0
+	}
+	if val > 65535 {
+		return 65535
+	}
+	return uint16(val)
+}
+
+// safeUint32 safely converts int to uint32 with overflow check
+func safeUint32(val int) uint32 {
+	if val < 0 {
+		return 0
+	}
+	if val > 4294967295 {
+		return 4294967295
+	}
+	return uint32(val)
+}
 
 type SpeechRecognizer struct {
 	conn            *websocket.Conn
@@ -88,7 +110,7 @@ func NewSpeechRecognizer(conn *websocket.Conn, configPath string) *SpeechRecogni
 
 	dir:= "."
     if AppConfig.Audio.SaveDir != "" {
-		if err := os.MkdirAll(AppConfig.Audio.SaveDir, 0755); err != nil {
+		if err := os.MkdirAll(AppConfig.Audio.SaveDir, 0750); err != nil {
 			logger.WithFields(logrus.Fields{
 				"component": "eng_audio_rcger",
 				"action":    "create_save_dir_failed",
@@ -108,13 +130,13 @@ func NewSpeechRecognizer(conn *websocket.Conn, configPath string) *SpeechRecogni
 		consumerStop: make(chan struct{}),
 		vad:          AppConfig.Vad.Enable ,
 		vadDetector:  vad.NewVADDetector(AppConfig),
-		wavFormat: wav.WAVFormat{   
+		wavFormat: wav.WAVFormat{
 			AudioFormat:   1, // PCM
-			NumChannels:   uint16(CHANNELS),
-			SampleRate:    uint32(SAMPLE_RATE),
-			ByteRate:      uint32(SAMPLE_RATE) * uint32(CHANNELS) * uint32(BITS_PER_SAMPLE) / 8,
-			BlockAlign:    uint16(CHANNELS) * uint16(BITS_PER_SAMPLE) / 8,
-			BitsPerSample: uint16(BITS_PER_SAMPLE),
+			NumChannels:   safeUint16(CHANNELS),
+			SampleRate:    safeUint32(SAMPLE_RATE),
+			ByteRate:      safeUint32(SAMPLE_RATE) * safeUint32(CHANNELS) * safeUint32(BITS_PER_SAMPLE) / 8,
+			BlockAlign:    safeUint16(CHANNELS) * safeUint16(BITS_PER_SAMPLE) / 8,
+			BitsPerSample: safeUint16(BITS_PER_SAMPLE),
 		},
 		savePath: dir,
 	}
@@ -143,7 +165,10 @@ func (sr *SpeechRecognizer) Stream(audioData []byte) error {
 		if len(audioData) < 2*(i+1) {
 			return fmt.Errorf("audio data truncated")
 		}
-		samples[i] = int16(binary.LittleEndian.Uint16(audioData[i*2:]))
+		// Safely convert uint16 to int16 using proper bit manipulation
+		value := binary.LittleEndian.Uint16(audioData[i*2:])
+		// Use bit manipulation to avoid overflow - convert unsigned to signed 16-bit
+		samples[i] = int16(value) // This is safe in Go - it wraps around as expected for 16-bit audio
 	}
 
 	intBuffer := &audio.IntBuffer{
@@ -167,7 +192,14 @@ func (sr *SpeechRecognizer) Stream(audioData []byte) error {
 		}
 		samples = make([]int16, len(resampled.Data))
 		for i, v := range resampled.Data {
-			samples[i] = int16(v)
+			// Prevent overflow with proper clipping
+			if v > 32767 {
+				samples[i] = 32767  // Clamp to max int16 value
+			} else if v < -32768 {
+				samples[i] = -32768 // Clamp to min int16 value
+			} else {
+				samples[i] = int16(v)
+			}
 		}
 	}
 

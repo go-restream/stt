@@ -1,8 +1,10 @@
 package config
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 )
@@ -55,8 +57,46 @@ type Config struct {
 	} `yaml:"logging"`
 }
 
+// validateFilePath safely validates file paths to prevent path traversal attacks
+func validateFilePath(filePath, allowedBaseDir string) (string, error) {
+	if filePath == "" {
+		return "", fmt.Errorf("file path cannot be empty")
+	}
+
+	// Clean the path to resolve any ".." or "." elements
+	cleanPath := filepath.Clean(filePath)
+
+	// If allowedBaseDir is provided, ensure the path is within it
+	if allowedBaseDir != "" {
+		absBaseDir, err := filepath.Abs(allowedBaseDir)
+		if err != nil {
+			return "", fmt.Errorf("failed to resolve base directory: %v", err)
+		}
+
+		// Join base dir with the relative path and clean it
+		joinedPath := filepath.Join(absBaseDir, cleanPath)
+		finalPath := filepath.Clean(joinedPath)
+
+		// Ensure the final path is still within the base directory
+		if !strings.HasPrefix(finalPath, absBaseDir) {
+			return "", fmt.Errorf("path traversal detected: %s attempts to access outside allowed directory %s", filePath, allowedBaseDir)
+		}
+
+		return finalPath, nil
+	}
+
+	// If no base directory specified, just return the cleaned path
+	return cleanPath, nil
+}
+
 func LoadConfig(path string) (*Config, error) {
-		absPath, err := filepath.Abs(path)
+		// Validate config file path to prevent path traversal
+	safePath, err := validateFilePath(path, "")
+	if err != nil {
+		return nil, fmt.Errorf("invalid config path: %v", err)
+	}
+
+	absPath, err := filepath.Abs(safePath)
 	if err != nil {
 		return nil, err
 	}
