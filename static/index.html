@@ -1,43 +1,43 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>实时语音ASR</title>
+    <title>Real-time Speech ASR</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Orbitron:wght@400;500&display=swap" rel="stylesheet">
     <link href="static/style.css" rel="stylesheet">
 </head>
 <body>
     <div class="container">
         <div class="visualizer-container">
-            <!-- <h1>语音效果显示区</h1> -->
-            <h1>实时语音ASR</h1>
+            <!-- <h1>Voice Effect Display Area</h1> -->
+            <h1>Real-time Speech ASR</h1>
             <canvas id="audioVisualizer"></canvas>
             <div id="audioLevel" class="audio-level"></div>
         </div>
         <div class="card">
             <div class="config-section">
                 <div class="config-group">
-                    <label for="sampleRate">采样率:</label>
+                    <label for="sampleRate">Sample Rate:</label>
                     <select id="sampleRate">
                         <option value="16000">16kHz</option>
                         <option value="48000" selected>48kHz</option>
                     </select>
                 </div>
                 <div class="config-group">
-                    <label for="vadEnabled">VAD检测:</label>
+                    <label for="vadEnabled">VAD Detection:</label>
                     <input type="checkbox" id="vadEnabled" checked>
                 </div>
             </div>
 
             <div class="btn-group">
-                <button id="startBtn">开始</button>
-                <button id="stopBtn" disabled>停止</button>
-                <button id="manualCommitBtn" disabled>手动提交</button>
+                <button id="startBtn">Start</button>
+                <button id="stopBtn" disabled>Stop</button>
+                <button id="manualCommitBtn" disabled>Manual Submit</button>
             </div>
 
-            <div id="status" class="status">准备就绪</div>
-            
+            <div id="status" class="status">Ready</div>
+
             <div class="card">
                 <div class="transcript-container">
                     <div id="transcript"></div>
@@ -47,35 +47,35 @@
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
                                 <path d="M2 1a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H9.5a1 1 0 0 0-1 1v4.5h2a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-.5.5h-2v2a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1-.5-.5v-2h-2a.5.5 0 0 1-.5-.5v-2a.5.5 0 0 1 .5-.5h2V2a2 2 0 0 1 2-2H14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h2.5a.5.5 0 0 1 0 1H2z"/>
                             </svg>
-                            <span>保存</span>
+                            <span>Save</span>
                         </button>
                         <button id="aiSummaryBtn" class="save-btn">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
                                 <path d="M6 12.5a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 0 1h-3a.5.5 0 0 1-.5-.5ZM3 8.062C3 6.76 4.235 5.765 5.53 5.886a26.58 26.58 0 0 0 4.94 0C11.765 5.765 13 6.76 13 8.062v1.157a.933.933 0 0 1-.765.935c-.845.147-2.34.346-4.235.346-1.895 0-3.39-.2-4.235-.346A.933.933 0 0 1 3 9.219V8.062Zm4.542-.827a.25.25 0 0 0-.217.068l-.92.9a24.767 24.767 0 0 1-1.871-.183.25.25 0 0 0-.068.495c.55.076 1.232.149 2.02.193a.25.25 0 0 0 .189-.071l.754-.736.847 1.71a.25.25 0 0 0 .404.062l.932-.97a25.286 25.286 0 0 0 1.922-.188.25.25 0 0 0-.068-.495c-.538.074-1.207.145-1.98.189a.25.25 0 0 0-.166.076l-.754.785-.842-1.7a.25.25 0 0 0-.182-.135Z"/>
                                 <path d="M8.5 1.866a1 1 0 1 0-1 0V3h-2A4.5 4.5 0 0 0 1 7.5V8a1 1 0 0 0-1 1v2a1 1 0 0 0 1 1v1a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-1a1 1 0 0 0 1-1V9a1 1 0 0 0-1-1v-.5A4.5 4.5 0 0 0 10.5 3h-2V1.866ZM14 7.5V13a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V7.5A3.5 3.5 0 0 1 5.5 4h5A3.5 3.5 0 0 1 14 7.5Z"/>
                             </svg>
-                            <span>AI总结</span>
+                            <span>AI Summary</span>
                         </button>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-    
-    <!-- 引入外部JavaScript文件 -->
+
+    <!-- Import external JavaScript file -->
     <script src="static/script.js"></script>
     <!-- <div class="color-picker">
-        <label for="bgColor">背景颜色:</label>
+        <label for="bgColor">Background Color:</label>
         <input type="color" id="bgColor" value="#121212">
-        <button onclick="changeBgColor()">应用</button>
+        <button onclick="changeBgColor()">Apply</button>
     </div> -->
-    
+
     <div class="theme-switcher" onclick="toggleThemeSwitcher(event)">
         <div class="toggle-icon">🎨</div>
         <div class="theme-buttons">
-            <button onclick="switchTheme('default')">深蓝科技</button>
-            <button onclick="switchTheme('cyber')">紫色赛博</button>
-            <button onclick="switchTheme('matrix')">绿色矩阵</button>
+            <button onclick="switchTheme('default')">Deep Blue Tech</button>
+            <button onclick="switchTheme('cyber')">Purple Cyber</button>
+            <button onclick="switchTheme('matrix')">Green Matrix</button>
         </div>
     </div>
 </body>

@@ -1,5 +1,5 @@
 :root {
-    /* 默认主题 - 深蓝科技风 */
+    /* Default theme - Deep blue tech style */
     --primary: #00d4ff;
     --secondary: #090979;
     --dark: #121212;
@@ -11,7 +11,7 @@
 }
 
 [data-theme="cyber"] {
-    /* 紫色赛博风 */
+    /* Purple cyber style */
     --primary: #ff00ff;
     --secondary: #8a2be2;
     --dark: #0f0f1a;
@@ -23,7 +23,7 @@
 }
 
 [data-theme="matrix"] {
-    /* 绿色矩阵风 */
+    /* Green matrix style */
     --primary: #00ff41;
     --secondary: #008f11;
     --dark: #020202;
@@ -46,17 +46,17 @@ body {
     transition: background 0.5s ease;
 }
 
-/* 默认主题背景 */
+/* Default theme background */
 [data-theme="default"] body {
     background: linear-gradient(135deg, var(--darker), var(--dark));
 }
 
-/* 赛博主题背景 */
+/* Cyber theme background */
 [data-theme="cyber"] body {
     background: linear-gradient(135deg, #1a0f33, #3a1f6f);
 }
 
-/* 矩阵主题背景 */
+/* Matrix theme background */
 [data-theme="matrix"] body {
     background: linear-gradient(135deg, #001a00, #003300);
 }
@@ -139,7 +139,7 @@ h1 {
     box-shadow: 0 12px 40px rgba(0, 212, 255, 0.2);
 }
 
-/* 配置区域样式 */
+/* Configuration area styles */
 .config-section {
     display: flex;
     gap: 2rem;
@@ -196,7 +196,7 @@ button {
     z-index: 1;
 }
 
-/* 移除按钮组的全局hover效果 */
+/* Remove global hover effect from button group */
 
 #startBtn {
     background: var(--primary);
@@ -326,7 +326,7 @@ button:disabled::before {
     }
 }
 
-/* 主题切换器样式 */
+/* Theme switcher styles */
 .theme-switcher {
     position: fixed;
     bottom: 20px;
@@ -387,7 +387,7 @@ button:disabled::before {
     color: var(--darker);
 }
 
-/* 按钮容器样式 */
+/* Button container styles */
 .transcript-container .btn-group {
     position: absolute;
     bottom: 15px;
@@ -396,7 +396,7 @@ button:disabled::before {
     gap: 10px;
 }
 
-/* 保存和AI总结按钮样式 */
+/* Save and AI summary button styles */
 .save-btn {
     position: absolute;
     bottom: 15px;
@@ -425,7 +425,7 @@ button:disabled::before {
     height: 14px;
 }
 
-/* 保存按钮动画 */
+/* Save button animation */
 .saved {
     animation: pulse 0.5s ease-in-out;
     background: var(--success) !important;
@@ -433,7 +433,7 @@ button:disabled::before {
     border-color: var(--success) !important;
 }
 
-/* AI总结内容框样式 */
+/* AI summary content box styles */
 .ai-summary {
     background: var(--card-bg);
     border: 1px solid rgba(255, 255, 255, 0.1);
@@ -457,8 +457,8 @@ button:disabled::before {
     border-radius: 4px;
 }
 
-/* 按钮组样式 */
-/* 移除单个按钮的绝对定位 */
+/* Button group styles */
+/* Remove absolute positioning from individual buttons */
 .save-btn {
     position: static;
     margin: 0;

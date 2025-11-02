@@ -94,6 +94,51 @@ curl http://localhost:8088/health
 curl http://localhost:8088/status
 ```
 
+## 🌐 Web 界面
+
+StreamASR 提供了一个内置的 Web UI 工具，方便用户通过浏览器直接进行实时语音识别测试。
+
+### 📸 Web UI 预览
+
+![StreamASR Web UI](asrTool.png)
+
+### 🎯 访问 Web UI
+
+启动服务后，在浏览器中访问：
+
+```bash
+# 主界面
+http://localhost:8088/
+
+# 或者直接访问静态文件
+http://localhost:8088/static/index.html
+```
+
+### ✨ Web UI 功能特性
+
+- **🎤 实时音频可视化** - 动态显示音频波形和音量级别
+- **🔧 配置选项** - 支持采样率选择（16kHz/48kHz）和 VAD 开关
+- **⚡ 实时转录** - 实时显示语音识别结果
+- **🎨 主题切换** - 支持多种视觉主题（深蓝科技、紫色赛博、绿色矩阵）
+- **💾 结果保存** - 支持转录结果的复制和保存
+- **🤖 AI 总结** - 集成 AI 功能对转录内容进行智能总结
+
+### 🎮 使用步骤
+
+1. **打开浏览器** 访问 `http://localhost:8088`
+2. **配置参数** 选择采样率和 VAD 检测开关
+3. **点击开始** 启动语音识别
+4. **授权麦克风** 浏览器会请求麦克风权限
+5. **开始说话** 实时查看转录结果
+6. **保存结果** 使用保存按钮复制转录文本
+
+### 🔧 技术特性
+
+- **WebSocket 连接** - 基于 WebSocket 的低延迟通信
+- **自动重连** - 支持断线自动重连机制
+- **心跳检测** - 30秒心跳保持连接稳定
+- **错误处理** - 完善的错误提示和状态显示
+
 ## 🔧 配置说明
 
 ### 服务配置文件 (config.yaml)
@@ -257,47 +302,6 @@ curl http://localhost:8088/health
 }
 ```
 
-## 🏗️ 项目结构
-
-```
-streamASR_realtime/
-├── cmd/                         # 命令行工具
-├── config/                      # 配置文件
-│   ├── config.go               # 配置结构定义
-│   └── config.yaml             # 默认配置文件
-├── internal/                    # 内部包
-│   ├── service/                # 服务层
-│   │   ├── apiserver.go        # HTTP API 服务器
-│   │   ├── audio_utils.go      # 音频处理工具
-│   │   ├── openai_websocket.go # WebSocket 处理器
-│   │   ├── recognizer.go       # 语音识别核心
-│   │   ├── session_manager.go  # 会话管理器
-│   │   └── vad_integration.go  # VAD 集成
-│   └── version/                # 版本信息
-│       └── version.go         # 版本管理
-├── pkg/                        # 公共包
-│   ├── health/                 # 健康检查
-│   ├── logger/                 # 日志工具
-│   ├── resampler/              # 音频重采样
-│   └── wav/                    # WAV 文件处理
-├── sdk/                        # 客户端 SDK
-│   ├── golang/                 # Go SDK
-│   └── typescript/             # TypeScript SDK
-├── vad/                        # VAD 相关
-│   ├── model/                  # VAD 模型文件
-│   └── vad.go                  # VAD 检测器
-├── docs/                       # 项目文档
-│   ├── DOCKER.md               # Docker 部署指南
-│   ├── VERSION.md              # 版本管理文档
-│   └── CHANGELOG.md            # 变更日志
-├── samples/                    # 示例文件
-├── config.yaml                 # 主配置文件
-├── Dockerfile                  # Docker 构建文件
-├── docker-compose.yml          # Docker Compose 配置
-├── Makefile                    # 构建脚本
-├── VERSION                     # 版本文件
-└── README.md                   # 项目说明文档
-```
 
 ## 🔧 版本管理
 

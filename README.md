@@ -94,46 +94,50 @@ curl http://localhost:8088/health
 curl http://localhost:8088/status
 ```
 
-## 🌐 Web 界面
+## 🌐 Web Interface
 
-StreamASR 提供了一个内置的 Web UI 工具，方便用户通过浏览器直接进行实时语音识别测试。
+StreamASR provides a built-in Web UI tool that allows users to perform real-time speech recognition testing directly through their browser.
 
-### 🎯 访问 Web UI
+### 📸 Web UI Preview
 
-启动服务后，在浏览器中访问：
+![StreamASR Web UI](asrTool.png)
+
+### 🎯 Accessing Web UI
+
+After starting the service, visit in your browser:
 
 ```bash
-# 主界面
+# Main interface
 http://localhost:8088/
 
-# 或者直接访问静态文件
+# Or directly access static files
 http://localhost:8088/static/index.html
 ```
 
-### ✨ Web UI 功能特性
+### ✨ Web UI Features
 
-- **🎤 实时音频可视化** - 动态显示音频波形和音量级别
-- **🔧 配置选项** - 支持采样率选择（16kHz/48kHz）和 VAD 开关
-- **⚡ 实时转录** - 实时显示语音识别结果
-- **🎨 主题切换** - 支持多种视觉主题（深蓝科技、紫色赛博、绿色矩阵）
-- **💾 结果保存** - 支持转录结果的复制和保存
-- **🤖 AI 总结** - 集成 AI 功能对转录内容进行智能总结
+- **🎤 Real-time Audio Visualization** - Dynamic display of audio waveforms and volume levels
+- **🔧 Configuration Options** - Support for sample rate selection (16kHz/48kHz) and VAD toggle
+- **⚡ Real-time Transcription** - Real-time display of speech recognition results
+- **🎨 Theme Switching** - Support for multiple visual themes (Deep Blue Tech, Purple Cyber, Green Matrix)
+- **💾 Result Saving** - Support for copying and saving transcription results
+- **🤖 AI Summary** - Integrated AI functionality for intelligent summarization of transcription content
 
-### 🎮 使用步骤
+### 🎮 Usage Steps
 
-1. **打开浏览器** 访问 `http://localhost:8088`
-2. **配置参数** 选择采样率和 VAD 检测开关
-3. **点击开始** 启动语音识别
-4. **授权麦克风** 浏览器会请求麦克风权限
-5. **开始说话** 实时查看转录结果
-6. **保存结果** 使用保存按钮复制转录文本
+1. **Open Browser** Visit `http://localhost:8088`
+2. **Configure Parameters** Select sample rate and VAD detection toggle
+3. **Click Start** Launch speech recognition
+4. **Authorize Microphone** Browser will request microphone permission
+5. **Start Speaking** View real-time transcription results
+6. **Save Results** Use save button to copy transcription text
 
-### 🔧 技术特性
+### 🔧 Technical Features
 
-- **WebSocket 连接** - 基于 WebSocket 的低延迟通信
-- **自动重连** - 支持断线自动重连机制
-- **心跳检测** - 30秒心跳保持连接稳定
-- **错误处理** - 完善的错误提示和状态显示
+- **WebSocket Connection** - Low-latency communication based on WebSocket
+- **Auto Reconnection** - Support for automatic reconnection on disconnection
+- **Heartbeat Detection** - 30-second heartbeat to maintain stable connection
+- **Error Handling** - Comprehensive error prompts and status display
 
 ## 🔧 Configuration
 
@@ -370,104 +374,6 @@ curl http://localhost:8088/health
 }
 ```
 
-## 🏗️ Project Structure
-
-```
-streamASR_realtime/
-├── config/                      # Configuration files
-│   ├── config.go               # Configuration structure definition
-│   └── config.yaml             # Default configuration file
-├── internal/                    # Internal packages
-│   ├── service/                # Service layer
-│   │   ├── apiserver.go        # HTTP API server
-│   │   ├── audio_utils.go      # Audio processing utilities
-│   │   ├── openai_events.go    # OpenAI event handlers
-│   │   ├── openai_websocket.go # WebSocket handler
-│   │   ├── recognizer.go       # Speech recognition core
-│   │   ├── session_manager.go  # Session manager
-│   │   └── vad_integration.go  # VAD integration
-│   └── version/                # Version information
-│       └── version.go         # Version management
-├── llm/                         # LLM integration
-│   ├── asr.go                  # ASR service integration
-│   ├── asr_test.go             # ASR service tests
-│   ├── openai.go               # OpenAI API client
-│   ├── openai_test.go          # OpenAI API tests
-│   └── types.go                # Common types
-├── pkg/                        # Public packages
-│   ├── health/                 # Health check
-│   │   └── asr_health.go       # ASR health check implementation
-│   ├── logger/                 # Logging utilities
-│   │   ├── custom_formatter.go # Custom log formatter
-│   │   └── logger.go           # Logger implementation
-│   ├── resampler/              # Audio resampling
-│   │   └── resampler.go        # Audio resampler implementation
-│   └── wav/                    # WAV file processing
-│       ├── reader.go           # WAV file reader
-│       ├── wav.go              # WAV utilities
-│       ├── wav_test.go         # WAV tests
-│       └── writer.go           # WAV file writer
-├── sdk/                        # Client SDKs
-│   ├── golang/                 # Go SDK
-│   │   ├── client/             # Client implementation
-│   │   ├── cmd/                # Command line tools
-│   │   ├── docs/               # Go SDK documentation
-│   │   ├── examples/           # Usage examples
-│   │   ├── pkg/                # Go SDK packages
-│   │   └── README.md           # Go SDK readme
-│   └── typescript/             # TypeScript SDK
-│       ├── docs/               # TypeScript SDK documentation
-│       ├── src/                # TypeScript source code
-│       ├── test-build/         # Test build files
-│       ├── dist/               # Compiled distribution
-│       └── README.md           # TypeScript SDK readme
-├── vad/                        # VAD related
-│   ├── model/                  # VAD model files
-│   │   └── silero_vad.onnx     # Silero VAD model
-│   └── vad.go                  # VAD detector implementation
-├── docs/                       # Project documentation
-│   ├── CHANGELOG.md            # Changelog (Chinese)
-│   ├── CHANGELOG_EN.md         # Changelog (English)
-│   ├── DOCKER.md               # Docker deployment guide (Chinese)
-│   ├── DOCKER_EN.md            # Docker deployment guide (English)
-│   ├── openai_realtime_api.md  # OpenAI Realtime API reference
-│   ├── realtime_ws_events_reference.md # WebSocket events reference
-│   ├── realtime_ws_flow.md     # WebSocket flow documentation
-│   ├── troubleshooting.md      # Troubleshooting guide
-│   ├── VERSION.md              # Version management documentation (Chinese)
-│   └── VERSION_EN.md           # Version management documentation (English)
-├── static/                     # Web UI static files
-│   ├── favicon.ico             # Favicon
-│   ├── index.html              # Main web interface
-│   ├── script.js               # Web UI JavaScript
-│   └── style.css               # Web UI styles
-├── samples/                    # Sample files
-│   └── sample.wav              # Sample audio file
-├── openspec/                   # OpenSpec change management
-│   ├── changes/                # Change specifications
-│   ├── specs/                  # Technical specifications
-│   └── project.md              # Project configuration
-├── build/                      # Build output directory (generated)
-├── node_modules/               # Node.js dependencies (generated)
-├── main.go                     # Application entry point
-├── go.mod                      # Go module definition
-├── go.sum                      # Go dependency checksums
-├── package.json                # Node.js package configuration
-├── package-lock.json           # Node.js dependency lock
-├── config.yaml                 # Main configuration file
-├── Dockerfile                  # Docker build file
-├── docker-compose.yml          # Docker Compose configuration
-├── Makefile                    # Build scripts
-├── VERSION                     # Version file
-├── README.md                   # Project documentation (English)
-├── README-zh.md                # Project documentation (Chinese)
-├── README-en.md                # Project documentation (English alternative)
-├── LICENSE                     # License file
-├── .dockerignore               # Docker ignore file
-├── .editorconfig               # Editor configuration
-├── .gitignore                  # Git ignore file
-└── CLAUDE.md                   # Claude AI assistant instructions
-```
 
 ## 🔧 Version Management
 

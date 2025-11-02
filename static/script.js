@@ -1,10 +1,10 @@
-// OpenAI Realtime API WebSocket连接
+// OpenAI Realtime API WebSocket connection
 let socket;
 let sessionId;
 let heartbeatInterval;
-const HEARTBEAT_INTERVAL = 30000; // 30秒心跳间隔
+const HEARTBEAT_INTERVAL = 30000; // 30 second heartbeat interval
 
-// 音频处理相关变量
+// Audio processing related variables
 let audioContext;
 let processor;
 let mediaStream;
@@ -12,11 +12,11 @@ let analyser;
 let canvasCtx;
 let animationId;
 
-// 调试相关变量
+// Debug related variables
 let isRecording = false;
 let recordingStartTime;
 
-// DOM元素
+// DOM elements
 const startBtn = document.getElementById('startBtn');
 const stopBtn = document.getElementById('stopBtn');
 const transcript = document.getElementById('transcript');
@@ -26,22 +26,22 @@ const sampleRateSelect = document.getElementById('sampleRate');
 const vadEnabledCheckbox = document.getElementById('vadEnabled');
 const manualCommitBtn = document.getElementById('manualCommitBtn');
 
-// 更新状态显示
+// Update status display
 function updateStatus(message, isError = false) {
     status.textContent = message;
     status.className = isError ? 'status error' : 'status';
     console.log(message);
 }
 
-// 生成唯一事件ID
+// Generate unique event ID
 function generateEventId() {
     return 'evt_' + Date.now() + '_' + Math.random().toString(36).substring(2, 11);
 }
 
-// 发送音频缓冲区提交请求
+// Send audio buffer commit request
 function sendAudioBufferCommit() {
     if (!socket || socket.readyState !== WebSocket.OPEN) {
-        console.warn('WebSocket未连接，无法发送commit请求');
+        console.warn('WebSocket not connected, cannot send commit request');
         return;
     }
 
@@ -53,27 +53,27 @@ function sendAudioBufferCommit() {
 
     try {
         socket.send(JSON.stringify(commitEvent));
-        console.log('[音频处理] 已发送音频缓冲区commit请求');
-        updateStatus('音频提交中，等待确认...');
+        console.log('[Audio Processing] Sent audio buffer commit request');
+        updateStatus('Submitting audio, waiting for confirmation...');
     } catch (error) {
-        console.error('发送commit请求失败:', error);
-        updateStatus('音频提交失败', true);
+        console.error('Failed to send commit request:', error);
+        updateStatus('Audio submission failed', true);
     }
 }
 
-// 发送会话配置
+// Send session configuration
 function sendSessionConfiguration() {
     if (!socket || socket.readyState !== WebSocket.OPEN) {
-        console.warn('WebSocket未连接，无法发送会话配置');
+        console.warn('WebSocket not connected, cannot send session configuration');
         return;
     }
 
     const sessionUpdateEvent = {
         type: "session.update",
         event_id: generateEventId(),
-        // 初始session.update不包含session_id，服务器会在session.updated响应中提供
+        // Initial session.update does not include session_id, server will provide it in session.updated response
         session: {
-            // 初始session.update不包含id字段
+            // Initial session.update does not include id field
             modality: "audio",
             input_audio_format: {
                 type: "pcm16",
@@ -99,20 +99,20 @@ function sendSessionConfiguration() {
     };
 
     socket.send(JSON.stringify(sessionUpdateEvent));
-    console.log('会话配置已发送');
+    console.log('Session configuration sent');
 }
 
-// 更新采样率配置
+// Update sample rate configuration
 function updateSampleRate(newSampleRate) {
     if (!socket || socket.readyState !== WebSocket.OPEN) {
-        console.warn('WebSocket未连接，无法更新采样率配置');
-        updateStatus('WebSocket未连接，无法更新采样率', true);
+        console.warn('WebSocket not connected, cannot update sample rate configuration');
+        updateStatus('WebSocket not connected, cannot update sample rate', true);
         return;
     }
 
     if (!sessionId) {
-        console.warn('会话ID未获取，无法更新采样率配置');
-        updateStatus('会话未建立，无法更新采样率', true);
+        console.warn('Session ID not obtained, cannot update sample rate configuration');
+        updateStatus('Session not established, cannot update sample rate', true);
         return;
     }
 
@@ -137,28 +137,28 @@ function updateSampleRate(newSampleRate) {
 
     try {
         socket.send(JSON.stringify(sampleRateUpdateEvent));
-        console.log(`[采样率更新] 已发送采样率更新请求: ${newSampleRate}Hz`);
-        updateStatus(`正在更新采样率到 ${newSampleRate}Hz...`);
+        console.log(`[Sample Rate Update] Sent sample rate update request: ${newSampleRate}Hz`);
+        updateStatus(`Updating sample rate to ${newSampleRate}Hz...`);
 
-        // 如果正在录音，提示用户需要重新开始录音
+        // If recording is in progress, prompt user to restart recording
         if (isRecording) {
             setTimeout(() => {
-                updateStatus('采样率已更新，请重新开始录音以应用新设置', false);
+                updateStatus('Sample rate updated, please restart recording to apply new settings', false);
             }, 1000);
         } else {
             setTimeout(() => {
-                updateStatus(`采样率已更新到 ${newSampleRate}Hz`);
+                updateStatus(`Sample rate updated to ${newSampleRate}Hz`);
             }, 1000);
         }
     } catch (error) {
-        console.error('发送采样率更新请求失败:', error);
-        updateStatus('采样率更新失败', true);
+        console.error('Failed to send sample rate update request:', error);
+        updateStatus('Sample rate update failed', true);
     }
 }
 
-// 初始化OpenAI Realtime API WebSocket连接
+// Initialize OpenAI Realtime API WebSocket connection
 function initOpenAIWebSocket() {
-    // 确保没有已存在的连接
+    // Ensure no existing connection
     if (socket && [WebSocket.OPEN, WebSocket.CONNECTING].includes(socket.readyState)) {
         return;
     }
@@ -168,33 +168,33 @@ function initOpenAIWebSocket() {
     const wsUrl = `${protocol}//${host}/v1/realtime`;
 
     try {
-        // 关闭现有连接
+        // Close existing connection
         if (socket) {
             socket.close();
         }
 
         socket = new WebSocket(wsUrl);
-        console.log('正在建立OpenAI Realtime API连接...');
+        console.log('Establishing OpenAI Realtime API connection...');
     } catch (e) {
-        console.error('创建WebSocket失败:', e);
-        updateStatus('创建连接失败', true);
+        console.error('Failed to create WebSocket:', e);
+        updateStatus('Failed to create connection', true);
         return;
     }
 
     socket.onopen = () => {
-        updateStatus('OpenAI Realtime API连接已建立');
+        updateStatus('OpenAI Realtime API connection established');
 
-        // 立即发送会话配置（OpenAI Realtime API标准流程）
+        // Immediately send session configuration (OpenAI Realtime API standard procedure)
         sendSessionConfiguration();
 
-        // 启动心跳检测
+        // Start heartbeat detection
         startHeartbeat();
     };
 
     socket.onclose = (event) => {
-        let message = `连接已关闭，代码=${event.code}`;
+        let message = `Connection closed, code=${event.code}`;
         if (event.reason) {
-            message += `，原因=${event.reason}`;
+            message += `, reason=${event.reason}`;
         }
         updateStatus(message, !event.wasClean);
         console.log(message);
@@ -202,45 +202,45 @@ function initOpenAIWebSocket() {
         stopRecording();
         stopHeartbeat();
 
-        // 如果是异常关闭，显示错误提示
+        // If abnormal closure, display error message
         if (event.code === 1006) {
-            updateStatus('连接异常中断，请检查服务器状态', true);
+            updateStatus('Connection interrupted unexpectedly, please check server status', true);
         }
     };
 
     socket.onerror = (error) => {
-        console.error('WebSocket错误:', error);
-        updateStatus('连接错误，请检查服务器状态', true);
+        console.error('WebSocket error:', error);
+        updateStatus('Connection error, please check server status', true);
         stopRecording();
     };
 
     socket.onmessage = (event) => {
         try {
             const data = JSON.parse(event.data);
-            console.log('收到OpenAI事件:', data);
+            console.log('Received OpenAI event:', data);
 
-            // 处理不同类型的事件
+            // Handle different types of events
             switch (data.type) {
                 case "session.created":
-                    // 从session.created事件中获取session ID
+                    // Get session ID from session.created event
                     if (data.session && data.session.id) {
                         sessionId = data.session.id;
-                        console.log('[会话] 会话已创建，ID:', sessionId);
-                        updateStatus('会话已创建');
+                        console.log('[Session] Session created, ID:', sessionId);
+                        updateStatus('Session created');
                     }
                     break;
 
                 case "session.updated":
-                    // 从session.updated响应中获取session ID
+                    // Get session ID from session.updated response
                     if (data.session && data.session.id) {
                         sessionId = data.session.id;
-                        console.log('[会话] 会话配置已更新，ID:', sessionId);
+                        console.log('[Session] Session configuration updated, ID:', sessionId);
                     }
-                    updateStatus('会话配置已更新');
+                    updateStatus('Session configuration updated');
                     break;
 
                 case "heartbeat.ping":
-                    // 响应心跳ping
+                    // Respond to heartbeat ping
                     const pongEvent = {
                         type: "heartbeat.pong",
                         event_id: generateEventId(),
@@ -250,71 +250,71 @@ function initOpenAIWebSocket() {
                     break;
 
                 case "conversation.item.created":
-                    console.log('[对话] 对话项目已创建:', data.item.id);
+                    console.log('[Conversation] Conversation item created:', data.item.id);
                     break;
 
                 case "conversation.item.input_audio_transcription.completed":
                     if (data.item && data.item.content && data.item.content.length > 0) {
                         const transcription = data.item.content[0].transcript;
                         if (transcription && transcription.trim()) {
-                            // 添加时间戳和格式化显示
+                            // Add timestamp and format display
                             const timestamp = new Date().toLocaleTimeString();
                             const formattedText = `[${timestamp}] ${transcription.trim()}`;
 
                             transcript.textContent += formattedText + '\n\n';
                             transcript.scrollTop = transcript.scrollHeight;
 
-                            console.log('[转写] 识别完成:', transcription);
-                            updateStatus('语音识别完成，继续说话...');
+                            console.log('[Transcription] Recognition completed:', transcription);
+                            updateStatus('Speech recognition completed, continue speaking...');
                         } else {
-                            console.log('[转写] 识别结果为空');
-                            updateStatus('未识别到有效语音，请重试');
+                            console.log('[Transcription] Recognition result is empty');
+                            updateStatus('No valid speech detected, please try again');
                         }
                     }
                     break;
 
                 case "conversation.item.input_audio_transcription.failed":
-                    console.error('[转写] 识别失败:', data.error);
-                    updateStatus(`语音识别失败: ${data.error?.message || '未知错误'}`, true);
+                    console.error('[Transcription] Recognition failed:', data.error);
+                    updateStatus(`Speech recognition failed: ${data.error?.message || 'Unknown error'}`, true);
                     break;
 
                 case "input_audio_buffer.speech_started":
-                    updateStatus('检测到语音开始');
-                    console.log('[语音检测] 开始录音');
+                    updateStatus('Speech start detected');
+                    console.log('[Speech Detection] Start recording');
                     break;
 
                 case "input_audio_buffer.speech_stopped":
-                    updateStatus('检测到语音结束，正在提交音频...');
-                    console.log('[语音检测] 语音停止，发送 commit 请求');
-                    // 客户端收到 speech_stopped 后主动发送 commit
+                    updateStatus('Speech end detected, submitting audio...');
+                    console.log('[Speech Detection] Speech stopped, sending commit request');
+                    // Client actively sends commit after receiving speech_stopped
                     sendAudioBufferCommit();
                     break;
 
                 case "input_audio_buffer.committed":
-                    updateStatus('音频提交成功，正在识别...');
-                    console.log('[音频处理] 音频已提交确认');
+                    updateStatus('Audio submitted successfully, recognizing...');
+                    console.log('[Audio Processing] Audio submission confirmed');
                     break;
 
                 case "heartbeat.pong":
-                    console.log('[心跳] 收到pong响应');
+                    console.log('[Heartbeat] Received pong response');
                     break;
 
                 case "error":
-                    console.error('[错误] 服务器错误:', data.error);
-                    updateStatus(`错误: ${data.error?.message || '未知错误'}`, true);
+                    console.error('[Error] Server error:', data.error);
+                    updateStatus(`Error: ${data.error?.message || 'Unknown error'}`, true);
                     break;
 
                 default:
-                    console.log('[事件] 未处理的事件类型:', data.type, data);
+                    console.log('[Event] Unhandled event type:', data.type, data);
             }
         } catch (e) {
-            console.error('解析消息失败:', e);
-            updateStatus('解析消息失败', true);
+            console.error('Failed to parse message:', e);
+            updateStatus('Failed to parse message', true);
         }
     };
 }
 
-// 启动心跳检测
+// Start heartbeat detection
 function startHeartbeat() {
     stopHeartbeat();
 
@@ -327,15 +327,15 @@ function startHeartbeat() {
                     session_id: sessionId
                 };
                 socket.send(JSON.stringify(pingEvent));
-                console.log('[心跳] 发送ping');
+                console.log('[Heartbeat] Sending ping');
             } catch (e) {
-                console.error('发送心跳失败:', e);
+                console.error('Failed to send heartbeat:', e);
             }
         }
     }, HEARTBEAT_INTERVAL);
 }
 
-// 停止心跳检测
+// Stop heartbeat detection
 function stopHeartbeat() {
     if (heartbeatInterval) {
         clearInterval(heartbeatInterval);
@@ -343,12 +343,12 @@ function stopHeartbeat() {
     }
 }
 
-// 开始录音
+// Start recording
 async function startRecording() {
     try {
-        updateStatus('正在获取麦克风权限...');
+        updateStatus('Requesting microphone permission...');
 
-        // 获取麦克风权限
+        // Get microphone permission
         mediaStream = await navigator.mediaDevices.getUserMedia({
             audio: {
                 echoCancellation: true,
@@ -358,48 +358,48 @@ async function startRecording() {
             }
         });
 
-        // 创建音频上下文
+        // Create audio context
         audioContext = new (window.AudioContext || window.webkitAudioContext)({
             sampleRate: parseInt(sampleRateSelect.value)
         });
 
-        // 等待音频上下文恢复
+        // Wait for audio context to resume
         if (audioContext.state === 'suspended') {
             await audioContext.resume();
         }
 
         const source = audioContext.createMediaStreamSource(mediaStream);
 
-        // 创建分析节点用于可视化
+        // Create analyzer node for visualization
         analyser = audioContext.createAnalyser();
         analyser.fftSize = 256;
         source.connect(analyser);
 
-        // 初始化Canvas上下文
+        // Initialize Canvas context
         const canvas = document.getElementById('audioVisualizer');
         canvasCtx = canvas.getContext('2d');
 
-        // 开始动画循环
+        // Start animation loop
         visualizeAudio();
 
-        // 创建音频处理器
+        // Create audio processor
         processor = audioContext.createScriptProcessor(4096, 1, 1);
 
         processor.onaudioprocess = (e) => {
             const inputBuffer = e.inputBuffer;
             const channelData = inputBuffer.getChannelData(0);
 
-            // 转换为16位PCM
+            // Convert to 16-bit PCM
             const pcmData = new Int16Array(channelData.length);
             for (let i = 0; i < channelData.length; i++) {
                 const sample = Math.max(-1, Math.min(1, channelData[i]));
                 pcmData[i] = sample < 0 ? sample * 32768 : sample * 32767;
             }
 
-            // 转换为Base64
+            // Convert to Base64
             const base64Audio = btoa(String.fromCharCode.apply(null, new Uint8Array(pcmData.buffer)));
 
-            // 发送音频数据到OpenAI API
+            // Send audio data to OpenAI API
             if (socket && socket.readyState === WebSocket.OPEN) {
                 try {
                     const audioEvent = {
@@ -410,28 +410,28 @@ async function startRecording() {
                     };
                     socket.send(JSON.stringify(audioEvent));
                 } catch (e) {
-                    console.error('发送音频数据失败:', e);
+                    console.error('Failed to send audio data:', e);
                     stopRecording();
                 }
             }
         };
 
-        // 连接节点
+        // Connect nodes
         source.connect(processor);
         processor.connect(audioContext.destination);
 
-        // 初始化录音状态
+        // Initialize recording state
         isRecording = true;
         recordingStartTime = Date.now();
 
-        updateStatus('正在语音识别...');
+        updateStatus('Performing speech recognition...');
         startBtn.disabled = true;
         stopBtn.disabled = false;
         if (manualCommitBtn) manualCommitBtn.disabled = false;
 
     } catch (error) {
-        updateStatus(`识别失败: ${error.message}`, true);
-        console.error('识别错误:', error);
+        updateStatus(`Recognition failed: ${error.message}`, true);
+        console.error('Recognition error:', error);
     }
 }
 
@@ -440,7 +440,7 @@ function stopRecording() {
         mediaStream.getTracks().forEach(track => track.stop());
     }
     if (audioContext) {
-        audioContext.close().catch(e => console.error('关闭音频上下文失败:', e));
+        audioContext.close().catch(e => console.error('Failed to close audio context:', e));
     }
     if (processor) {
         processor.disconnect();
@@ -449,16 +449,16 @@ function stopRecording() {
         cancelAnimationFrame(animationId);
     }
 
-    // 停止录音
+    // Stop recording
     isRecording = false;
 
-    updateStatus('语音识别已停止');
+    updateStatus('Speech recognition stopped');
     startBtn.disabled = false;
     stopBtn.disabled = true;
     if (manualCommitBtn) manualCommitBtn.disabled = true;
 }
 
-// 音频可视化函数
+// Audio visualization function
 function visualizeAudio() {
     if (!analyser) return;
 
@@ -492,14 +492,14 @@ function visualizeAudio() {
     animationId = requestAnimationFrame(visualizeAudio);
 }
 
-// 保存功能
+// Save functionality
 function setupSaveButton() {
     saveBtn.addEventListener('click', async () => {
         try {
             await navigator.clipboard.writeText(transcript.textContent);
-            // 显示保存成功反馈
+            // Display save success feedback
             const originalText = saveBtn.querySelector('span').textContent;
-            saveBtn.querySelector('span').textContent = '已保存';
+            saveBtn.querySelector('span').textContent = 'Saved';
             saveBtn.classList.add('saved');
 
             setTimeout(() => {
@@ -507,9 +507,9 @@ function setupSaveButton() {
                 saveBtn.classList.remove('saved');
             }, 2000);
         } catch (err) {
-            console.error('保存失败:', err);
+            console.error('Save failed:', err);
             const originalText = saveBtn.querySelector('span').textContent;
-            saveBtn.querySelector('span').textContent = '保存失败';
+            saveBtn.querySelector('span').textContent = 'Save failed';
             setTimeout(() => {
                 saveBtn.querySelector('span').textContent = originalText;
             }, 2000);
@@ -517,7 +517,7 @@ function setupSaveButton() {
     });
 }
 
-// AI总结功能
+// AI summary functionality
 function setupAISummaryButton() {
     const aiSummaryBtn = document.getElementById('aiSummaryBtn');
     const aiSummary = document.getElementById('aiSummary');
@@ -529,14 +529,14 @@ function setupAISummaryButton() {
         if (!isVisible) {
             const transcriptText = transcript.textContent.trim();
             if (!transcriptText) {
-                aiSummary.textContent = "没有可总结的内容";
+                aiSummary.textContent = "No content to summarize";
                 return;
             }
 
-            aiSummary.textContent = "AI总结生成中...";
+            aiSummary.textContent = "Generating AI summary...";
 
             try {
-                // 调用后端API
+                // Call backend API
                 const response = await fetch('/v1/chat/completions', {
                     method: 'POST',
                     headers: {
@@ -546,17 +546,17 @@ function setupAISummaryButton() {
                         model: "deepseek-coder",
                         messages: [{
                             role: "user",
-                            content: `请总结以下文本：\n${transcriptText}`
+                            content: `Please summarize the following text:\n${transcriptText}`
                         }],
                         stream: true
                     })
                 });
 
                 if (!response.ok) {
-                    throw new Error(`API请求失败: ${response.status}`);
+                    throw new Error(`API request failed: ${response.status}`);
                 }
 
-                // 处理流式响应
+                // Handle streaming response
                 const reader = response.body.getReader();
                 const decoder = new TextDecoder();
                 let result = '';
@@ -581,28 +581,28 @@ function setupAISummaryButton() {
                                     aiSummary.scrollTop = aiSummary.scrollHeight;
                                 }
                             } catch (e) {
-                                console.error('解析JSON失败:', e);
+                                console.error('Failed to parse JSON:', e);
                             }
                         }
                     }
                 }
             } catch (error) {
-                console.error('AI总结失败:', error);
-                aiSummary.textContent = `AI总结失败: ${error.message}`;
+                console.error('AI summary failed:', error);
+                aiSummary.textContent = `AI summary failed: ${error.message}`;
             }
         }
     });
 }
 
-// 初始化
+// Initialize
 function initializeApp() {
-    // 确保DOM元素存在
+    // Ensure DOM elements exist
     if (!startBtn || !stopBtn || !transcript || !status || !saveBtn) {
-        console.error('关键DOM元素未找到，请检查HTML结构');
+        console.error('Key DOM elements not found, please check HTML structure');
         return;
     }
 
-    // 移除之前的事件监听器避免重复
+    // Remove previous event listeners to avoid duplication
     document.removeEventListener('DOMContentLoaded', initializeApp);
     startBtn.removeEventListener('click', startRecording);
     stopBtn.removeEventListener('click', stopRecording);
@@ -614,37 +614,37 @@ function initializeApp() {
     startBtn.addEventListener('click', startRecording);
     stopBtn.addEventListener('click', stopRecording);
 
-    // 添加采样率选择器变化事件监听
+    // Add sample rate selector change event listener
     if (sampleRateSelect) {
         sampleRateSelect.addEventListener('change', (event) => {
             const newSampleRate = parseInt(event.target.value);
-            console.log(`[采样率变化] 用户选择采样率: ${newSampleRate}Hz`);
+            console.log(`[Sample Rate Change] User selected sample rate: ${newSampleRate}Hz`);
             updateSampleRate(newSampleRate);
         });
-        console.log('[初始化] 采样率选择器事件监听器已添加');
+        console.log('[Initialization] Sample rate selector event listener added');
     } else {
-        console.warn('[初始化] 采样率选择器未找到');
+        console.warn('[Initialization] Sample rate selector not found');
     }
 
-    // 添加手动提交按钮事件
+    // Add manual commit button event
     if (manualCommitBtn) {
         manualCommitBtn.addEventListener('click', () => {
             if (isRecording) {
                 sendAudioBufferCommit();
             } else {
-                updateStatus('请先开始录音');
+                updateStatus('Please start recording first');
             }
         });
     }
 
-    // 关闭前清理
+    // Cleanup before closing
     window.addEventListener('beforeunload', () => {
         if (socket) socket.close();
         if (mediaStream) stopRecording();
     });
 }
 
-// 确保DOM完全加载后初始化
+// Ensure DOM is fully loaded before initialization
 function checkDOMAndInitialize() {
     const requiredElements = ['startBtn', 'stopBtn', 'transcript', 'status', 'copyBtn'];
     const allElementsExist = requiredElements.every(id => document.getElementById(id));
@@ -662,13 +662,13 @@ if (document.readyState === 'loading') {
     checkDOMAndInitialize();
 }
 
-// 主题切换功能
+// Theme switching functionality
 function switchTheme(themeName) {
     document.documentElement.setAttribute('data-theme', themeName);
     localStorage.setItem('theme', themeName);
 }
 
-// 初始化时检查保存的主题
+// Check saved theme on initialization
 document.addEventListener('DOMContentLoaded', () => {
     const savedTheme = localStorage.getItem('theme') || 'default';
     document.documentElement.setAttribute('data-theme', savedTheme);
@@ -679,12 +679,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
 let collapseTimer = null;
 
-// 主题切换器展开/折叠功能
+// Theme switcher expand/collapse functionality
 function toggleThemeSwitcher(event) {
     const switcher = event.currentTarget;
     const clickedButton = event.target.closest('button');
 
-    // 如果点击的是主题按钮，不切换展开状态
+    // If clicking a theme button, don't toggle expanded state
     if (clickedButton) {
         startAutoCollapse(switcher);
         return;
@@ -698,7 +698,7 @@ function toggleThemeSwitcher(event) {
     }
 }
 
-// 启动自动折叠计时器
+// Start auto-collapse timer
 function startAutoCollapse(switcher) {
     clearAutoCollapse();
     collapseTimer = setTimeout(() => {
@@ -706,7 +706,7 @@ function startAutoCollapse(switcher) {
     }, 3000);
 }
 
-// 清除自动折叠计时器
+// Clear auto-collapse timer
 function clearAutoCollapse() {
     if (collapseTimer) {
         clearTimeout(collapseTimer);

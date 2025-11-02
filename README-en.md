@@ -96,6 +96,10 @@ curl http://localhost:8088/status
 
 StreamASR provides a built-in Web UI tool that allows users to perform real-time speech recognition testing directly through their browser.
 
+### 📸 Web UI Preview
+
+![StreamASR Web UI](asrTool.png)
+
 ### 🎯 Access Web UI
 
 After starting the service, visit in your browser:
@@ -296,52 +300,6 @@ curl http://localhost:8088/health
 }
 ```
 
-## 🏗️ Project Structure
-
-```
-streamASR_realtime/
-├── cmd/                         # Command line tools
-├── config/                      # Configuration files
-│   ├── config.go               # Configuration structure definition
-│   └── config.yaml             # Default configuration file
-├── internal/                    # Internal packages
-│   ├── service/                # Service layer
-│   │   ├── apiserver.go        # HTTP API server
-│   │   ├── audio_utils.go      # Audio processing utilities
-│   │   ├── openai_websocket.go # WebSocket handler
-│   │   ├── recognizer.go       # Speech recognition core
-│   │   ├── session_manager.go  # Session manager
-│   │   └── vad_integration.go  # VAD integration
-│   └── version/                # Version information
-│       └── version.go         # Version management
-├── pkg/                        # Public packages
-│   ├── health/                 # Health check
-│   ├── logger/                 # Logging utilities
-│   ├── resampler/              # Audio resampling
-│   └── wav/                    # WAV file processing
-├── sdk/                        # Client SDKs
-│   ├── golang/                 # Go SDK
-│   └── typescript/             # TypeScript SDK
-├── vad/                        # VAD related
-│   ├── model/                  # VAD model files
-│   └── vad.go                  # VAD detector
-├── static/                     # Web UI static files
-│   ├── index.html              # Web UI main page
-│   ├── script.js               # Web UI JavaScript
-│   ├── style.css               # Web UI styles
-│   └── favicon.ico             # Web UI favicon
-├── docs/                       # Project documentation
-│   ├── DOCKER.md               # Docker deployment guide
-│   ├── VERSION.md              # Version management documentation
-│   └── CHANGELOG.md            # Changelog
-├── samples/                    # Sample files
-├── config.yaml                 # Main configuration file
-├── Dockerfile                  # Docker build file
-├── docker-compose.yml          # Docker Compose configuration
-├── Makefile                    # Build scripts
-├── VERSION                     # Version file
-└── README.md                   # Project documentation
-```
 
 ## 🔧 Version Management
 
