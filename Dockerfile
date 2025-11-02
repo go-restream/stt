@@ -20,7 +20,7 @@ ARG VERSION=dev
 ARG BUILD_TIME=unknown
 ARG GIT_COMMIT=unknown
 
-RUN CGO_ENABLED=0 GOOS=linux go build \
+RUN CGO_ENABLED=1 GOOS=linux go build \
     -ldflags "-X main.version=${VERSION} -X main.buildTime=${BUILD_TIME} -X main.gitCommit=${GIT_COMMIT}" \
     -o streamASR .
 

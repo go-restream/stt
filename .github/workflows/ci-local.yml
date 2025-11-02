@@ -102,7 +102,7 @@ jobs:
           binary_name="$binary_name.exe"
         fi
 
-        CGO_ENABLED=0 GOOS=$GOOS GOARCH=$GOARCH go build \
+        CGO_ENABLED=1 GOOS=$GOOS GOARCH=$GOARCH go build \
           -ldflags "-X github.com/go-restream/stt/internal/version.Version=${VERSION:-dev} -X github.com/go-restream/stt/internal/version.BuildTime=${BUILD_TIME} -X github.com/go-restream/stt/internal/version.GitCommit=${GIT_COMMIT}" \
           -o "dist/$binary_name" .
 
