@@ -16,7 +16,7 @@ import (
 
 var  (
 	asrApiKey = os.Getenv("OPENAI_API_KEY")
-	asrBaseURL = "http://localhost:3001/v1"
+	asrBaseURL = "http://localhost:3000/v1"
 	asrModel = "FunAudioLLM/SenseVoiceSmall"
 )
 
