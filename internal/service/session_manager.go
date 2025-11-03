@@ -9,6 +9,7 @@ import (
 	"github.com/go-restream/stt/config"
 	"github.com/go-restream/stt/pkg/logger"
 	vad "github.com/go-restream/stt/vad"
+	denoiser "github.com/go-restream/stt/denoiser"
 	"github.com/gorilla/websocket"
 	"github.com/sirupsen/logrus"
 )
@@ -80,6 +81,9 @@ type Session struct {
 	IsSpeaking      bool `json:"-"`
 	SpeechStartTime time.Time `json:"-"`
 	VADDetector     *vad.VADDetector `json:"-"`
+
+	// Denoiser state
+	DenoiserProcessor *denoiser.DenoiserProcessor `json:"-"`
 
 	// Recognition state
 	CurrentItemID string `json:"current_item_id,omitempty"`
@@ -161,6 +165,16 @@ func (sm *SessionManager) CreateSession(conn *websocket.Conn, modality string) (
 		}).Info("Per-session VAD detector initialized")
 	}
 
+	// Initialize per-session denoiser processor if denoiser is enabled
+	if sm.Config != nil && sm.Config.Denoiser.Enable {
+		session.DenoiserProcessor = denoiser.NewDenoiserProcessor(sm.Config)
+		logger.WithFields(logrus.Fields{
+			"component": "mg_session_ctrl",
+			"action":    "denoiser_processor_initialized",
+			"sessionID": sessionID,
+		}).Info("Per-session denoiser processor initialized")
+	}
+
 	sm.sessions[sessionID] = session
 
 	logger.WithFields(logrus.Fields{
@@ -221,6 +235,16 @@ func (sm *SessionManager) DeleteSession(sessionID string) {
 				"sessionID": sessionID,
 			}).Info("Per-session VAD detector closed")
 		}
+
+		// Clean up denoiser processor if it exists
+		if session.DenoiserProcessor != nil {
+			session.DenoiserProcessor.Close()
+			logger.WithFields(logrus.Fields{
+				"component": "mg_session_ctrl",
+				"action":    "denoiser_processor_closed",
+				"sessionID": sessionID,
+			}).Info("Per-session denoiser processor closed")
+		}
 		session.AudioBuffer = nil
 		delete(sm.sessions, sessionID)
 		logger.WithFields(logrus.Fields{
@@ -256,6 +280,16 @@ func (sm *SessionManager) RemoveSession(sessionID string) {
 		}).Info("Per-session VAD detector closed during removal")
 	}
 
+	// Clean up denoiser processor if it exists
+	if session.DenoiserProcessor != nil {
+		session.DenoiserProcessor.Close()
+		logger.WithFields(logrus.Fields{
+			"component": "mg_session_ctrl",
+			"action":    "denoiser_processor_closed",
+			"sessionID": sessionID,
+		}).Info("Per-session denoiser processor closed during removal")
+	}
+
 	session.AudioBuffer = nil
 	session.VADAudioBuffer = nil
 	delete(sm.sessions, sessionID)
@@ -287,6 +321,16 @@ func (sm *SessionManager) CleanupInactiveSessions() {
 					"action":    "vad_detector_closed",
 					"sessionID": sessionID,
 				}).Info("Per-session VAD detector closed during cleanup")
+			}
+
+			// Clean up denoiser processor if it exists
+			if session.DenoiserProcessor != nil {
+				session.DenoiserProcessor.Close()
+				logger.WithFields(logrus.Fields{
+					"component": "mg_session_ctrl",
+					"action":    "denoiser_processor_closed",
+					"sessionID": sessionID,
+				}).Info("Per-session denoiser processor closed during cleanup")
 			}
 
 			session.AudioBuffer = nil

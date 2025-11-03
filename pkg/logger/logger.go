@@ -24,6 +24,7 @@ func InitLogger(logLevel string, logFile string) error {
 
 	Logger.SetFormatter(&CustomFormatter{
 		TimestampFormat: "2006-01-02 15:04:05.000",
+		ForceColors:     true, // Force color output to highlight performance metrics
 	})
 
 	if logFile != "" {

@@ -121,6 +121,7 @@ func (vi *VADIntegration) ProcessAudioSamples(sessionID string, samples []int16)
 					"component":   "proc_vad_audio",
 					"action":      "speech_segment_detected",
 					"sampleCount": len(segment.Samples),
+					"vadProcessingTimeMs":   vadProcessingTime.Milliseconds(),
 					"sessionID":   sessionID,
 				}).Info("Speech segment detected")
 
@@ -163,7 +164,7 @@ func (vi *VADIntegration) ProcessAudioSamples(sessionID string, samples []int16)
 		"speechSegments":      speechSegmentsDetected,
 		"sessionID":           sessionID,
 		"totalTime":           totalTime,
-		"vadProcessingTime":   vadProcessingTime,
+		"vadProcessingTimeMs":   vadProcessingTime.Milliseconds(),
 		"conversionTime":      conversionTime,
 	}).Debug("Completed VAD processing")
 
@@ -313,16 +314,45 @@ func (vi *VADIntegration) processSpeechSegment(sessionID string, segment *sherpa
 		"sessionID":      sessionID,
 	}).Info("Processing speech segment for recognition")
 
-		conversionStart := time.Now()
-	samples := make([]int16, len(segment.Samples))
-	for i, sample := range segment.Samples {
+	// Apply denoising if enabled and available
+	processedSegment := segment
+	session, exists := vi.sessionManager.GetSession(sessionID)
+	if exists && session.DenoiserProcessor != nil && vi.config.Denoiser.Enable {
+		denoiserStart := time.Now()
+		enhancedSegment := session.DenoiserProcessor.ProcessSegment(segment)
+		denoiserTime := time.Since(denoiserStart)
+
+		if enhancedSegment != nil && len(enhancedSegment.Samples) > 0 {
+			processedSegment = enhancedSegment
+			logger.WithFields(logrus.Fields{
+				"component":        "proc_vad_audio",
+				"action":           "denoising_applied",
+				"originalSamples":  len(segment.Samples),
+				"enhancedSamples":  len(enhancedSegment.Samples),
+				"denoiserTimeMs":     denoiserTime.Milliseconds(),
+				"sessionID":        sessionID,
+			}).Info("Audio segment enhanced with denoiser")
+		} else {
+			logger.WithFields(logrus.Fields{
+				"component":     "proc_vad_audio",
+				"action":        "denoising_failed_or_bypassed",
+				"sampleCount":   len(segment.Samples),
+				"denoiserTimeMs":  denoiserTime.Milliseconds(),
+				"sessionID":     sessionID,
+			}).Warn("Denoiser failed or was bypassed, using original segment")
+		}
+	}
+
+	conversionStart := time.Now()
+	samples := make([]int16, len(processedSegment.Samples))
+	for i, sample := range processedSegment.Samples {
 		samples[i] = int16(sample * 32768.0)
 	}
 	conversionTime := time.Since(conversionStart)
 	logger.WithFields(logrus.Fields{
 		"component":      "proc_vad_audio",
 		"action":         "conversion_to_int16_completed",
-		"inputSamples":   len(segment.Samples),
+		"inputSamples":   len(processedSegment.Samples),
 		"outputSamples":  len(samples),
 		"conversionTime": conversionTime,
 		"sessionID":      sessionID,

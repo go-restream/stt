@@ -20,6 +20,7 @@ DIST_DIR := dist
 CONFIG_DIR := config
 STATIC_DIR := static
 VAD_MODEL_DIR := vad
+DENOISER_MODEL_DIR := enhance
 SAMPLE_DIR := samples
 VERSION := $(shell cat VERSION 2>/dev/null || echo "v0.1.1")
 BUILD_TIME := $(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
@@ -36,7 +37,9 @@ build:
 	@cp -r $(CONFIG_DIR)$(SEP)config.yaml $(BUILD_DIR)
 	@cp -r $(STATIC_DIR) $(BUILD_DIR)
 	@cp -r $(SAMPLE_DIR) $(BUILD_DIR)
-	@cp -r $(VAD_MODEL_DIR)$(SEP)model $(BUILD_DIR)$(SEP)model
+	@mkdir -p $(BUILD_DIR)$(SEP)model
+	@cp $(VAD_MODEL_DIR)$(SEP)model$(SEP)*.onnx $(BUILD_DIR)$(SEP)model
+	@cp $(DENOISER_MODEL_DIR)$(SEP)model$(SEP)*.onnx $(BUILD_DIR)$(SEP)model
 	@echo "Build completed: $(BUILD_DIR)$(SEP)$(TARGET) ($(VERSION))"
 
 run: build
@@ -158,7 +161,7 @@ docker-run:
 	docker run -d --name streamasr-container \
 		-p 8088:8088 \
 		-v $(PWD)$(SEP)$(CONFIG_DIR)$(SEP)config.yaml:/app/config/config.yaml:ro \
-		-v $(PWD)$(SEP)$(VAD_MODEL_DIR)$(SEP)model:/app/vad/model:ro \
+		-v $(PWD)$(SEP)$(BUILD_DIR)$(SEP)model:/app/model:ro \
 		-v $(PWD)$(SEP)audio:/app/audio \
 		-v $(PWD)$(SEP)logs:/app/logs \
 		streamasr:latest
@@ -214,7 +217,7 @@ docker-debug:
 	docker run -it --rm --name streamasr-debug \
 		-p 8088:8088 \
 		-v $(PWD)$(SEP)$(CONFIG_DIR)$(SEP)config.yaml:/app/config/config.yaml:ro \
-		-v $(PWD)$(SEP)$(VAD_MODEL_DIR)$(SEP)model:/app/vad/model:ro \
+		-v $(PWD)$(SEP)$(BUILD_DIR)$(SEP)model:/app/model:ro \
 		-v $(PWD)$(SEP)audio:/app/audio \
 		-v $(PWD)$(SEP)logs:/app/logs \
 		streamasr:dev /bin/bash

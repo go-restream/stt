@@ -79,6 +79,10 @@ RUN ls /usr/local/lib/*.so
 RUN mkdir -p audio static model samples logs && \
     chown -R streamasr:streamasr /app/
 
+COPY --from=builder /app/vad/model ./model/
+COPY --from=builder /app/enhance/model ./model/
+RUN chown -R streamasr:streamasr /app/model/
+
 USER streamasr
 
 RUN chmod +x streamASR

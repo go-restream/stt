@@ -51,6 +51,16 @@ type Config struct {
 	ForceASRAfterSeconds  int    `yaml:"force_asr_after_seconds"`
 	} `yaml:"vad"`
 
+	Denoiser struct {
+		Enable                bool   `yaml:"enable"`
+		Model                 string `yaml:"model"`
+		SampleRate            int    `yaml:"sample_rate"`
+		NumThreads            int    `yaml:"num_threads"`
+		Debug                 int    `yaml:"debug"`
+		BypassForTesting      bool   `yaml:"bypass_for_testing"`
+		MaxProcessingTimeMs   int    `yaml:"max_processing_time_ms"`
+	} `yaml:"denoiser"`
+
 	Logging struct {
 		Level  string `yaml:"level"`
 		File   string `yaml:"file"`

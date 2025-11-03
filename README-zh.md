@@ -24,6 +24,7 @@
 
 - **🎤 实时语音识别** - 基于 WebSocket 的低延迟音频流处理
 - **🧠 智能 VAD 检测** - 集成 Sherpa-ONNX 语音活动检测，自动触发音频提交
+- **🔇 AI 降噪** - 内置基于 GTCRN 模型的降噪器，增强噪声环境下的语音识别准确率
 - **🔄 OpenAI 兼容** - 支持 OpenAI 兼容的 ASR 接口，可配置多种模型
 - **📊 结构化日志** - 基于 logrus 的详细日志记录和监控
 - **🐳 Docker 支持** - 完整的容器化部署方案
@@ -36,6 +37,7 @@
 
 - **Go 1.23+** - 服务端运行环境
 - **VAD 模型文件** - Sherpa-ONNX VAD 模型 (silero_vad.onnx)
+- **降噪器模型文件** - Sherpa-ONNX GTCRN 模型 (gtcrn_simple.onnx)
 - **ASR 服务** - OpenAI 兼容的语音识别 API
 
 ### ⚡ 快速启动
@@ -181,6 +183,16 @@ vad:
   sample_rate: 16000                         # 采样率
   num_threads: 1                             # 线程数
   provider: "cpu"                            # 计算提供方
+
+# 降噪器配置（AI降噪）
+denoiser:
+  enable: true                               # 启用/禁用降噪器
+  model: "./model/gtcrn_simple.onnx"         # GTCRN降噪器模型路径
+  sample_rate: 16000                         # 采样率
+  num_threads: 1                             # 线程数
+  debug: 0                                   # 调试级别 (0-3)
+  bypass_for_testing: false                  # 测试时绕过降噪器
+  max_processing_time_ms: 50                 # 最大处理时间(毫秒)
 
 # 日志配置
 logging:
@@ -377,10 +389,16 @@ go test ./...
 1. **VAD 模型文件缺失**
    ```bash
    # 确保 VAD 模型文件存在
-   ls -la vad/model/silero_vad.onnx
+   ls -la model/silero_vad.onnx
    ```
 
-2. **ASR 服务连接失败**
+2. **降噪器模型文件缺失**
+   ```bash
+   # 确保降噪器模型文件存在
+   ls -la model/gtcrn_simple.onnx
+   ```
+
+3. **ASR 服务连接失败**
    ```bash
    # 检查 ASR 服务配置
    curl -H "Authorization: Bearer $API_KEY" \
@@ -389,7 +407,7 @@ go test ./...
         $ASR_BASE_URL/audio/transcriptions
    ```
 
-3. **端口占用**
+4. **端口占用**
    ```bash
    # 检查端口占用
    lsof -i :8088
@@ -418,6 +436,8 @@ export LOG_LEVEL=debug
 - **并发支持**: 支持多并发 WebSocket 连接
 - **音频处理**: 支持 16kHz/48kHz 采样率
 - **VAD 延迟**: < 100ms 语音活动检测延迟
+- **降噪器延迟**: < 20ms 额外的降噪处理时间
+- **噪声抑制**: 提高噪声环境下的 ASR 准确率
 
 ## 🤝 贡献指南
 
@@ -455,18 +475,21 @@ export LOG_LEVEL=debug
 
 ## 🏷️ 版本更新记录
 
-### v0.1.2 (2025-11-02)
+### v0.1.2 (2025-11-03)
 
 #### ✨ 新增功能
+- **🔇 AI 降噪** - 内置基于 GTCRN 模型的降噪器，增强语音识别准确率
 - **🏷️ 版本管理系统** - 完整的版本管理和构建流程
 - **🐳 Docker 支持** - 完整的容器化部署方案
 - **📋 Makefile 集成** - 自动化构建和部署脚本
 - **📖 文档完善** - 详细的部署和开发文档
 
 #### 🔧 技术改进
+- **🎯 音频流水线增强** - 在 VAD 和 ASR 处理之间集成降噪器
 - **🔧 项目结构优化** - 更清晰的代码组织和模块划分
 - **📝 日志增强** - 启动日志包含版本信息
 - **🛠️ 构建流程** - 支持版本信息自动注入
+- **🧪 全面测试** - 降噪器功能的单元测试
 
 ### v0.1.1
 

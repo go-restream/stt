@@ -308,7 +308,7 @@ func (s *OpenAIService) handleMessage(session *Session, messageType int, message
 			"component": "mont_hrtbeat_act",
 			"action":    "received_ping",
 			"sessionID": session.ID,
-		}).Info("Received Ping from client")
+		}).Debug("Received Ping from client")
 
 		session.mutex.Lock()
 		defer session.mutex.Unlock()
@@ -327,7 +327,7 @@ func (s *OpenAIService) handleMessage(session *Session, messageType int, message
 			"component": "mont_hrtbeat_act",
 			"action":    "received_pong",
 			"sessionID": session.ID,
-		}).Info("Received Pong from client")
+		}).Debug("Received Pong from client")
 		return nil
 	default:
 		return fmt.Errorf("unsupported message type: %d", messageType)
@@ -455,7 +455,7 @@ func (s *OpenAIService) handleHeartbeatPing(session *Session, _ *HeartbeatPingEv
 		"component": "mont_hrtbeat_act",
 		"action":    "ping_received",
 		"sessionID": session.ID,
-	}).Info("Ping received for session")
+	}).Debug("Ping received for session")
 
 	// Send heartbeat.pong response
 	pongEvent := &HeartbeatPongEvent{
@@ -476,7 +476,7 @@ func (s *OpenAIService) handleHeartbeatPong(session *Session, _ *HeartbeatPongEv
 		"component": "mont_hrtbeat_act",
 		"action":    "pong_received",
 		"sessionID": session.ID,
-	}).Info("Pong received for session")
+	}).Debug("Pong received for session")
 	// Update session last active time
 	s.sessionManager.UpdateSession(session.ID, func(sess *Session) {
 		sess.LastActive = time.Now()
@@ -1150,7 +1150,7 @@ func (s *OpenAIService) heartbeatLoop(ctx context.Context, session *Session) {
 				"component": "mont_hrtbeat_act",
 				"action":    "ping_sent",
 				"sessionID": session.ID,
-			}).Info("Sent ping to session")
+			}).Debug("Sent ping to session")
 		}
 	}
 }

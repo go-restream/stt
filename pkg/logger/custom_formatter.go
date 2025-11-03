@@ -15,6 +15,7 @@ const (
 	ColorReset  = "\033[0m"
 	ColorRed    = "\033[31m"   // Error, Fatal, Panic
 	ColorYellow = "\033[33m"   // Warning
+	ColorYellowBold = "\033[1;33m" // Bold Yellow for performance metrics
 	ColorPink   = "\033[38;5;206m" // Pink for error levels
 	ColorBlue   = "\033[34m"   // Info
 	ColorCyan   = "\033[36m"   // Debug
@@ -37,6 +38,27 @@ func getColorForLevel(level logrus.Level) string {
 	default:
 		return ColorReset
 	}
+}
+
+// isPerformanceMetricField checks if a field name is a key performance metric that should be highlighted
+func isPerformanceMetricField(key string) bool {
+	performanceMetrics := []string{
+		"recognitionTimeMs",
+		"denoiserTimeMs",
+		"vadProcessingTimeMs",
+	}
+
+	for _, metric := range performanceMetrics {
+		if key == metric {
+			return true
+		}
+	}
+	return false
+}
+
+// highlightPerformanceMetric adds yellow highlighting to performance metric values
+func highlightPerformanceMetric(value interface{}) string {
+	return ColorYellowBold + fmt.Sprintf("%v", value) + ColorReset
 }
 
 // CustomFormatter is a custom log formatter that ensures the "level" field appears first
@@ -131,6 +153,10 @@ func (f *CustomFormatter) Format(entry *logrus.Entry) ([]byte, error) {
 				// Escape the level value manually to preserve ANSI color codes
 				levelStr := fmt.Sprintf("%v", value)
 				fmt.Fprintf(b, "\"%s\":\"%s\"", key, levelStr)
+			} else if isPerformanceMetricField(key) {
+				// Apply yellow highlighting to performance metrics
+				highlightedValue := highlightPerformanceMetric(value)
+				fmt.Fprintf(b, "\"%s\":\"%s\"", key, highlightedValue)
 			} else {
 				jsonValue, _ := json.Marshal(value)
 				fmt.Fprintf(b, "\"%s\":%s", key, string(jsonValue))
@@ -146,8 +172,14 @@ func (f *CustomFormatter) Format(entry *logrus.Entry) ([]byte, error) {
 			}
 			firstField = false
 
-			jsonValue, _ := json.Marshal(value)
-			fmt.Fprintf(b, "\"%s\":%s", key, string(jsonValue))
+			if isPerformanceMetricField(key) {
+				// Apply yellow highlighting to performance metrics
+				highlightedValue := highlightPerformanceMetric(value)
+				fmt.Fprintf(b, "\"%s\":\"%s\"", key, highlightedValue)
+			} else {
+				jsonValue, _ := json.Marshal(value)
+				fmt.Fprintf(b, "\"%s\":%s", key, string(jsonValue))
+			}
 		}
 	}
 
@@ -237,14 +269,26 @@ func (f *CustomFormatterText) Format(entry *logrus.Entry) ([]byte, error) {
 	// Add fields in preferred order first
 	for _, key := range preferredOrder {
 		if value, exists := orderedData[key]; exists {
-			parts = append(parts, fmt.Sprintf("%s=%v", key, value))
+			if isPerformanceMetricField(key) {
+				// Apply yellow highlighting to performance metrics
+				highlightedValue := highlightPerformanceMetric(value)
+				parts = append(parts, fmt.Sprintf("%s=%v", key, highlightedValue))
+			} else {
+				parts = append(parts, fmt.Sprintf("%s=%v", key, value))
+			}
 		}
 	}
 
 	// Add remaining fields
 	for _, key := range remainingKeys {
 		if value, exists := orderedData[key]; exists {
-			parts = append(parts, fmt.Sprintf("%s=%v", key, value))
+			if isPerformanceMetricField(key) {
+				// Apply yellow highlighting to performance metrics
+				highlightedValue := highlightPerformanceMetric(value)
+				parts = append(parts, fmt.Sprintf("%s=%v", key, highlightedValue))
+			} else {
+				parts = append(parts, fmt.Sprintf("%s=%v", key, value))
+			}
 		}
 	}
 

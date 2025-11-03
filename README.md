@@ -24,6 +24,7 @@
 
 - **🎤 Real-time Speech Recognition** - Low-latency audio stream processing based on WebSocket
 - **🧠 Smart VAD Detection** - Integrated Sherpa-ONNX voice activity detection with automatic audio submission trigger
+- **🔇 AI Noise Reduction** - Built-in denoiser using GTCRN model for enhanced speech recognition in noisy environments
 - **🔄 OpenAI Compatible** - Supports OpenAI-compatible ASR interface with configurable multiple models
 - **📊 Structured Logging** - Detailed logging and monitoring based on logrus
 - **🐳 Docker Support** - Complete containerized deployment solution
@@ -36,6 +37,7 @@
 
 - **Go 1.23+** - Server runtime environment
 - **VAD Model File** - Sherpa-ONNX VAD model (silero_vad.onnx)
+- **Denoiser Model File** - Sherpa-ONNX GTCRN model (gtcrn_simple.onnx)
 - **ASR Service** - OpenAI-compatible speech recognition API
 
 ### ⚡ Quick Launch
@@ -182,6 +184,16 @@ vad:
   num_threads: 1                             # Number of threads
   provider: "cpu"                            # Compute provider
 
+# Denoiser configuration (AI Noise Reduction)
+denoiser:
+  enable: true                               # Enable/disable denoiser
+  model: "./model/gtcrn_simple.onnx"         # GTCRN denoiser model path
+  sample_rate: 16000                         # Sample rate
+  num_threads: 1                             # Number of threads
+  debug: 0                                   # Debug level (0-3)
+  bypass_for_testing: false                  # Bypass denoiser for testing
+  max_processing_time_ms: 50                 # Maximum processing time (ms)
+
 # Logging configuration
 logging:
   level: "info"                              # Log level
@@ -220,7 +232,7 @@ services:
       - "8088:8088"
     volumes:
       - ./config/config.yaml:/app/config/config.yaml:ro
-      - ./vad/model:/app/vad/model:ro
+      - ./build/model:/app/model:ro
       - ./audio:/app/audio
       - ./logs:/app/logs
     environment:
@@ -449,10 +461,16 @@ go test ./...
 1. **VAD Model File Missing**
    ```bash
    # Ensure VAD model file exists
-   ls -la vad/model/silero_vad.onnx
+   ls -la model/silero_vad.onnx
    ```
 
-2. **ASR Service Connection Failed**
+2. **Denoiser Model File Missing**
+   ```bash
+   # Ensure denoiser model file exists
+   ls -la model/gtcrn_simple.onnx
+   ```
+
+3. **ASR Service Connection Failed**
    ```bash
    # Check ASR service configuration
    curl -H "Authorization: Bearer $API_KEY" \
@@ -461,7 +479,7 @@ go test ./...
         $ASR_BASE_URL/audio/transcriptions
    ```
 
-3. **Port Occupied**
+4. **Port Occupied**
    ```bash
    # Check port occupation
    lsof -i :8088
@@ -490,6 +508,8 @@ export LOG_LEVEL=debug
 - **Concurrency Support**: Supports multiple concurrent WebSocket connections
 - **Audio Processing**: Supports 16kHz/48kHz sample rates
 - **VAD Latency**: < 100ms voice activity detection latency
+- **Denoiser Latency**: < 20ms additional processing time for noise reduction
+- **Noise Reduction**: Improved ASR accuracy in noisy environments
 
 ## 🤝 Contributing
 
@@ -527,18 +547,21 @@ We welcome community contributions! Please follow these steps:
 
 ## 🏷️ Version Updates
 
-### v0.1.2 (2025-11-02)
+### v0.1.2 (2025-11-03)
 
 #### ✨ New Features
+- **🔇 AI Noise Reduction** - Built-in denoiser using GTCRN model for enhanced speech recognition
 - **🏷️ Version Management System** - Complete version management and build process
 - **🐳 Docker Support** - Complete containerized deployment solution
 - **📋 Makefile Integration** - Automated build and deployment scripts
 - **📖 Documentation Enhancement** - Detailed deployment and development documentation
 
 #### 🔧 Technical Improvements
+- **🎯 Audio Pipeline Enhancement** - Integrated denoiser between VAD and ASR processing
 - **🔧 Project Structure Optimization** - Clearer code organization and module division
 - **📝 Logging Enhancement** - Startup logs include version information
 - **🛠️ Build Process** - Support for automatic version information injection
+- **🧪 Comprehensive Testing** - Unit tests for denoiser functionality
 
 ### v0.1.1
 
