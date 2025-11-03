@@ -1,6 +1,8 @@
 package vad
 
 import (
+	"sync"
+
 	"github.com/go-restream/stt/pkg/logger"
 
 	yaml "github.com/go-restream/stt/config"
@@ -20,6 +22,7 @@ type VADDetector struct {
 	speechSegments []sherpa.SpeechSegment
 	printed     bool
 	config      *yaml.Config
+	mutex       sync.RWMutex
 }
 
 func NewVADDetector(cfg *yaml.Config) *VADDetector {
@@ -45,6 +48,9 @@ func (v *VADDetector) Close() {
 
 // ProcessSamples processes audio samples and returns speech segments
 func (v *VADDetector) ProcessSamples(samples []float32) *sherpa.SpeechSegment {
+	v.mutex.Lock()
+	defer v.mutex.Unlock()
+
 	if len(samples) == 0 {
 		logger.WithFields(logrus.Fields{
 			"component": "eng_vad_audio_sys",
@@ -195,12 +201,18 @@ func (v *VADDetector) ProcessSample(sample float32) *sherpa.SpeechSegment {
 
 // Reset resets the VAD detector state
 func (v *VADDetector) Reset() {
+	v.mutex.Lock()
+	defer v.mutex.Unlock()
+
 	v.vad.Reset()
 	v.speechSegments = nil
 }
 
 // IsSpeech checks if speech activity is currently detected
 func (v *VADDetector) IsSpeech() bool {
+	v.mutex.RLock()
+	defer v.mutex.RUnlock()
+
 	return v.vad.IsSpeech()
 }
 

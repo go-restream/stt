@@ -9,7 +9,6 @@ import (
 	config "github.com/go-restream/stt/config"
 	llm "github.com/go-restream/stt/llm"
 	"github.com/go-restream/stt/pkg/logger"
-	vad "github.com/go-restream/stt/vad"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
@@ -46,10 +45,7 @@ func NewOpenAIService(openAIConfig *OpenAIConfig, configPath string) *OpenAIServ
 		openAIConfig = DefaultOpenAIConfig()
 	}
 
-	// Initialize session manager first
-	sessionManager := NewSessionManager(openAIConfig.SessionTimeout, openAIConfig.MaxSessions)
-
-	// Load configuration
+	// Load configuration first before initializing session manager
 	appConfig, err := config.LoadConfig(configPath)
 	if err != nil {
 		logger.WithFields(logrus.Fields{
@@ -59,6 +55,9 @@ func NewOpenAIService(openAIConfig *OpenAIConfig, configPath string) *OpenAIServ
 		}).Error("Failed to load config")
 		appConfig = &config.Config{} // Use empty config as fallback
 	}
+
+	// Initialize session manager first
+	sessionManager := NewSessionManager(openAIConfig.SessionTimeout, openAIConfig.MaxSessions, appConfig)
 
 	// Set ASR configuration from config file to ensure config file takes precedence
 	llm.SetAsrBaseURL(appConfig.ASR.BaseURL)
@@ -76,13 +75,11 @@ func NewOpenAIService(openAIConfig *OpenAIConfig, configPath string) *OpenAIServ
 	// Initialize VAD integration
 	var vadIntegration *VADIntegration
 	if appConfig.Vad.Enable {
-		// Initialize VAD detector
-		vadDetector := vad.NewVADDetector(appConfig)
-		vadIntegration = NewVADIntegration(vadDetector, sessionManager, appConfig)
+		vadIntegration = NewVADIntegration(sessionManager, appConfig)
 		logger.WithFields(logrus.Fields{
 			"component": "svc_openai_api ",
 			"action":    "vad_integration_enabled",
-		}).Info("VAD integration enabled")
+		}).Info("Per-session VAD integration enabled")
 	} else {
 		logger.WithFields(logrus.Fields{
 			"component": "svc_openai_api ",

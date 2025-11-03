@@ -1,33 +1,27 @@
 package service
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/go-restream/stt/config"
 	"github.com/go-restream/stt/pkg/logger"
-	vad "github.com/go-restream/stt/vad"
 
 	sherpa "github.com/k2-fsa/sherpa-onnx-go/sherpa_onnx"
 	"github.com/sirupsen/logrus"
 )
 
 type VADIntegration struct {
-	vadDetector         *vad.VADDetector
 	sessionManager      *SessionManager
 	sampleBuffer        []float32
-	isSpeaking          bool
-	speechStartTime     time.Time
-	lastSpeechTime      time.Time
 	lastProcessingTime  time.Time
 	config              *config.Config
 }
 
-func NewVADIntegration(vadDetector *vad.VADDetector, sessionManager *SessionManager, cfg *config.Config) *VADIntegration {
+func NewVADIntegration(sessionManager *SessionManager, cfg *config.Config) *VADIntegration {
 	return &VADIntegration{
-		vadDetector:        vadDetector,
 		sessionManager:     sessionManager,
 		sampleBuffer:       make([]float32, 0),
-		isSpeaking:         false,
 		lastProcessingTime: time.Now(),
 		config:             cfg,
 	}
@@ -35,7 +29,7 @@ func NewVADIntegration(vadDetector *vad.VADDetector, sessionManager *SessionMana
 
 func (vi *VADIntegration) ProcessAudioSamples(sessionID string, samples []int16) error {
 	startTime := time.Now()
-		if len(samples) == 0 {
+	if len(samples) == 0 {
 		logger.WithFields(logrus.Fields{
 			"component": "proc_vad_audio",
 			"action":    "empty_samples_received",
@@ -44,7 +38,22 @@ func (vi *VADIntegration) ProcessAudioSamples(sessionID string, samples []int16)
 		return nil
 	}
 
-		var maxAmplitude int16
+	// Get session to retrieve per-session VAD detector
+	session, exists := vi.sessionManager.GetSession(sessionID)
+	if !exists {
+		return fmt.Errorf("session not found: %s", sessionID)
+	}
+
+	if session.VADDetector == nil {
+		logger.WithFields(logrus.Fields{
+			"component": "proc_vad_audio",
+			"action":    "vad_detector_not_found",
+			"sessionID": sessionID,
+		}).Warn("VAD detector not found for session")
+		return nil
+	}
+
+	var maxAmplitude int16
 	var sumAmplitude int64
 	for _, sample := range samples {
 		if sample < 0 {
@@ -71,7 +80,7 @@ func (vi *VADIntegration) ProcessAudioSamples(sessionID string, samples []int16)
 		"hasAudio":     maxAmplitude > 100, // Threshold for "significant" audio
 	}).Debug("Starting VAD processing with audio validation")
 
-		conversionStart := time.Now()
+	conversionStart := time.Now()
 	floatSamples := make([]float32, len(samples))
 	for i, sample := range samples {
 		floatSamples[i] = float32(sample) / 32768.0
@@ -86,7 +95,7 @@ func (vi *VADIntegration) ProcessAudioSamples(sessionID string, samples []int16)
 		"sessionID":     sessionID,
 	}).Debug("Converted int16 samples to float32 samples")
 
-		chunksProcessed := 0
+	chunksProcessed := 0
 	speechSegmentsDetected := 0
 	vadProcessingTime := time.Duration(0)
 
@@ -99,15 +108,15 @@ func (vi *VADIntegration) ProcessAudioSamples(sessionID string, samples []int16)
 		chunk := floatSamples[i:end]
 		vi.sampleBuffer = append(vi.sampleBuffer, chunk...)
 
-				if len(vi.sampleBuffer) >= 160 {
+		if len(vi.sampleBuffer) >= 160 {
 			chunksProcessed++
 			vadStart := time.Now()
-			segment := vi.vadDetector.ProcessSamples(vi.sampleBuffer)
+			segment := session.VADDetector.ProcessSamples(vi.sampleBuffer)
 			vadProcessingTime += time.Since(vadStart)
 			vi.sampleBuffer = vi.sampleBuffer[:0]
 
 			if segment != nil && len(segment.Samples) > 0 {
-								speechSegmentsDetected++
+				speechSegmentsDetected++
 				logger.WithFields(logrus.Fields{
 					"component":   "proc_vad_audio",
 					"action":      "speech_segment_detected",
@@ -115,7 +124,7 @@ func (vi *VADIntegration) ProcessAudioSamples(sessionID string, samples []int16)
 					"sessionID":   sessionID,
 				}).Info("Speech segment detected")
 
-				if !vi.isSpeaking {
+				if !session.IsSpeaking {
 					logger.WithFields(logrus.Fields{
 						"component": "proc_vad_audio",
 						"action":    "transition_to_speaking",
@@ -123,21 +132,21 @@ func (vi *VADIntegration) ProcessAudioSamples(sessionID string, samples []int16)
 					}).Info("Transition to speaking state")
 					vi.handleSpeechStarted(sessionID)
 				}
-				vi.lastSpeechTime = time.Now()
+				session.SpeechStartTime = time.Now()
 
-								vi.processSpeechSegment(sessionID, segment)
+				vi.processSpeechSegment(sessionID, segment)
 			} else {
-								silenceTimeout := 500 * time.Millisecond // Default 500ms silence timeout
+				silenceTimeout := 500 * time.Millisecond // Default 500ms silence timeout
 				if vi.config.Vad.MinSilenceDuration > 0 {
 					silenceTimeout = time.Duration(vi.config.Vad.MinSilenceDuration * 1000) * time.Millisecond
 				}
 
-				if vi.isSpeaking && time.Since(vi.lastSpeechTime) > silenceTimeout {
+				if session.IsSpeaking && time.Since(session.SpeechStartTime) > silenceTimeout {
 					logger.WithFields(logrus.Fields{
 						"component":       "proc_vad_audio",
 						"action":          "speech_timeout_detected",
 						"sessionID":       sessionID,
-						"silenceDuration": time.Since(vi.lastSpeechTime),
+						"silenceDuration": time.Since(session.SpeechStartTime),
 						"timeout":         silenceTimeout,
 					}).Info("Speech timeout detected - stopping speech")
 					vi.handleSpeechStopped(sessionID)
@@ -191,12 +200,19 @@ func (vi *VADIntegration) ProcessAudioSamples(sessionID string, samples []int16)
 }
 
 func (vi *VADIntegration) handleSpeechStarted(sessionID string) {
-	vi.isSpeaking = true
-	vi.speechStartTime = time.Now()
+	vi.sessionManager.UpdateSession(sessionID, func(sess *Session) {
+		sess.IsSpeaking = true
+		sess.SpeechStartTime = time.Now()
+	})
 
-		audioStartMs := int(time.Since(vi.speechStartTime).Milliseconds())
+	session, exists := vi.sessionManager.GetSession(sessionID)
+	if !exists {
+		return
+	}
 
-		speechStartedEvent := &InputAudioBufferSpeechStartedEvent{
+	audioStartMs := int(time.Since(session.SpeechStartTime).Milliseconds())
+
+	speechStartedEvent := &InputAudioBufferSpeechStartedEvent{
 		BaseEvent: BaseEvent{
 			Type:      EventTypeInputAudioBufferSpeechStarted,
 			EventID:   GenerateEventID(),
@@ -220,15 +236,15 @@ func (vi *VADIntegration) handleSpeechStarted(sessionID string) {
 			"audioStartMs": audioStartMs,
 		}).Info("Speech started detected")
 	}
-
-	vi.sessionManager.UpdateSession(sessionID, func(sess *Session) {
-		sess.IsSpeaking = true
-		sess.SpeechStartTime = vi.speechStartTime
-	})
 }
 
 func (vi *VADIntegration) handleSpeechStopped(sessionID string) {
-	if !vi.isSpeaking {
+	session, exists := vi.sessionManager.GetSession(sessionID)
+	if !exists {
+		return
+	}
+
+	if !session.IsSpeaking {
 		logger.WithFields(logrus.Fields{
 			"component": "proc_vad_audio",
 			"action":    "speech_stopped_already_not_speaking",
@@ -237,11 +253,13 @@ func (vi *VADIntegration) handleSpeechStopped(sessionID string) {
 		return
 	}
 
-	vi.isSpeaking = false
+	vi.sessionManager.UpdateSession(sessionID, func(sess *Session) {
+		sess.IsSpeaking = false
+	})
 
-		audioEndMs := int(time.Since(vi.speechStartTime).Milliseconds())
+	audioEndMs := int(time.Since(session.SpeechStartTime).Milliseconds())
 
-		speechStoppedEvent := &InputAudioBufferSpeechStoppedEvent{
+	speechStoppedEvent := &InputAudioBufferSpeechStoppedEvent{
 		BaseEvent: BaseEvent{
 			Type:      EventTypeInputAudioBufferSpeechStopped,
 			EventID:   GenerateEventID(),
@@ -265,10 +283,6 @@ func (vi *VADIntegration) handleSpeechStopped(sessionID string) {
 			"audioEndMs": audioEndMs,
 		}).Info("Speech stopped detected and event sent - waiting for client to commit")
 	}
-
-	vi.sessionManager.UpdateSession(sessionID, func(sess *Session) {
-		sess.IsSpeaking = false
-	})
 
 	// OpenAI Realtime API spec: CLIENT sends input_audio_buffer.commit after speech_stopped
 	logger.WithFields(logrus.Fields{
@@ -354,15 +368,24 @@ func (vi *VADIntegration) processSpeechSegment(sessionID string, segment *sherpa
 }
 
 func (vi *VADIntegration) Reset(sessionID string) {
-	vi.isSpeaking = false
 	vi.sampleBuffer = vi.sampleBuffer[:0]
-	vi.vadDetector.Reset()
 
-		vi.sessionManager.UpdateSession(sessionID, func(sess *Session) {
+	session, exists := vi.sessionManager.GetSession(sessionID)
+	if !exists || session.VADDetector == nil {
+		return
+	}
+
+	session.VADDetector.Reset()
+
+	vi.sessionManager.UpdateSession(sessionID, func(sess *Session) {
 		sess.IsSpeaking = false
 	})
 }
 
-func (vi *VADIntegration) IsSpeaking() bool {
-	return vi.isSpeaking
+func (vi *VADIntegration) IsSpeaking(sessionID string) bool {
+	session, exists := vi.sessionManager.GetSession(sessionID)
+	if !exists {
+		return false
+	}
+	return session.IsSpeaking
 }

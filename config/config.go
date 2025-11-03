@@ -24,6 +24,7 @@ type Config struct {
 		Model   string `yaml:"model"`
 	} `yaml:"llm"`
 
+	// Just for testing purposes
 	Audio struct {
 		Enable     bool    `yaml:"enable"`
 		SaveDir    string `yaml:"save_dir"`

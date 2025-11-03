@@ -6,7 +6,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/go-restream/stt/config"
 	"github.com/go-restream/stt/pkg/logger"
+	vad "github.com/go-restream/stt/vad"
 	"github.com/gorilla/websocket"
 	"github.com/sirupsen/logrus"
 )
@@ -77,6 +79,7 @@ type Session struct {
 	// VAD state
 	IsSpeaking      bool `json:"-"`
 	SpeechStartTime time.Time `json:"-"`
+	VADDetector     *vad.VADDetector `json:"-"`
 
 	// Recognition state
 	CurrentItemID string `json:"current_item_id,omitempty"`
@@ -111,14 +114,16 @@ type SessionManager struct {
 	// Configuration
 	SessionTimeout time.Duration
 	MaxSessions    int
+	Config         *config.Config
 }
 
 // NewSessionManager creates a new session manager
-func NewSessionManager(sessionTimeout time.Duration, maxSessions int) *SessionManager {
+func NewSessionManager(sessionTimeout time.Duration, maxSessions int, cfg *config.Config) *SessionManager {
 	return &SessionManager{
 		sessions:       make(map[string]*Session),
 		SessionTimeout: sessionTimeout,
 		MaxSessions:    maxSessions,
+		Config:         cfg,
 	}
 }
 
@@ -145,6 +150,16 @@ func (sm *SessionManager) CreateSession(conn *websocket.Conn, modality string) (
 	session.InputAudioFormat.Type = "pcm16"
 	session.InputAudioFormat.SampleRate = 0
 	session.InputAudioFormat.Channels = 1
+
+	// Initialize per-session VAD detector if VAD is enabled
+	if sm.Config != nil && sm.Config.Vad.Enable {
+		session.VADDetector = vad.NewVADDetector(sm.Config)
+		logger.WithFields(logrus.Fields{
+			"component": "mg_session_ctrl",
+			"action":    "vad_detector_initialized",
+			"sessionID": sessionID,
+		}).Info("Per-session VAD detector initialized")
+	}
 
 	sm.sessions[sessionID] = session
 
@@ -197,6 +212,15 @@ func (sm *SessionManager) DeleteSession(sessionID string) {
 	defer sm.mutex.Unlock()
 
 	if session, exists := sm.sessions[sessionID]; exists {
+		// Clean up VAD detector if it exists
+		if session.VADDetector != nil {
+			session.VADDetector.Close()
+			logger.WithFields(logrus.Fields{
+				"component": "mg_session_ctrl",
+				"action":    "vad_detector_closed",
+				"sessionID": sessionID,
+			}).Info("Per-session VAD detector closed")
+		}
 		session.AudioBuffer = nil
 		delete(sm.sessions, sessionID)
 		logger.WithFields(logrus.Fields{
@@ -222,6 +246,16 @@ func (sm *SessionManager) RemoveSession(sessionID string) {
 		session.Conn = nil
 	}
 
+	// Clean up VAD detector if it exists
+	if session.VADDetector != nil {
+		session.VADDetector.Close()
+		logger.WithFields(logrus.Fields{
+			"component": "mg_session_ctrl",
+			"action":    "vad_detector_closed",
+			"sessionID": sessionID,
+		}).Info("Per-session VAD detector closed during removal")
+	}
+
 	session.AudioBuffer = nil
 	session.VADAudioBuffer = nil
 	delete(sm.sessions, sessionID)
@@ -243,6 +277,16 @@ func (sm *SessionManager) CleanupInactiveSessions() {
 		if now.Sub(session.LastActive) > sm.SessionTimeout {
 			if session.Conn != nil {
 				session.Conn.Close()
+			}
+
+			// Clean up VAD detector if it exists
+			if session.VADDetector != nil {
+				session.VADDetector.Close()
+				logger.WithFields(logrus.Fields{
+					"component": "mg_session_ctrl",
+					"action":    "vad_detector_closed",
+					"sessionID": sessionID,
+				}).Info("Per-session VAD detector closed during cleanup")
 			}
 
 			session.AudioBuffer = nil
